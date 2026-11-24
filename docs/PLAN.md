@@ -214,3 +214,16 @@ erDiagram
 - Frontend: страница `/projects/:id/bom`, кнопка «PDF со схемами» в редакторе, итог боковой панели редактора включает разделы с сервера.
 - Зависимости: `weasyprint>=68,<71`, `openpyxl`; для тестов `pypdf`.
 
+### Этап 9: что реализовано
+
+- `backend/Dockerfile` (multi-stage, Python 3.12-slim): venv из `requirements.txt`, системные библиотеки WeasyPrint (pango, HarfBuzz-subset) и шрифт DejaVu, `collectstatic` на этапе сборки, пользователь `10001`, `HEALTHCHECK` на `/healthz`, запуск gunicorn (`WEB_CONCURRENCY`, таймаут 120 с под PDF). `docker-entrypoint.sh` по флагам `RUN_MIGRATIONS` / `SEED_CATALOG` применяет миграции и загружает каталог (в Kubernetes — отдельным Job).
+- Статика (admin, Swagger) отдаётся WhiteNoise (`CompressedStaticFilesStorage`, без manifest, чтобы тесты не зависели от `collectstatic`): один контейнер без общего тома.
+- `frontend/Dockerfile`: сборка Vite → `nginx-unprivileged` с SPA-fallback и долгим кэшем `/assets/`.
+- `deploy/nginx/default.conf` — входной nginx: `/api`, `/admin`, `/static`, `/healthz`, `/readyz` → backend, остальное → frontend; `client_max_body_size 32m` (PDF со схемами), заголовки безопасности, `X-Forwarded-Proto` с учётом внешнего TLS-терминатора.
+- `docker-compose.yml`: db (healthcheck `pg_isready`), backend (healthcheck `/readyz`), frontend, nginx; обязательные `DJANGO_SECRET_KEY` и `POSTGRES_PASSWORD` без значений по умолчанию; `no-new-privileges`, `cap_drop: ALL`. Корневой `.env.example`.
+- `DATA_UPLOAD_MAX_MEMORY_SIZE` поднят до 32 МБ (по умолчанию Django режет JSON-тело на 2,5 МБ, а PDF принимает до 60 SVG по 2 МБ).
+- `deploy/smoke.sh` — сквозная проверка работающего стенда: пробы, SPA, статика, регистрация, проект, каталог, экспорт PDF и XLSX.
+- GitHub Actions (`.github/workflows/ci.yml`): backend (ruff, ruff format, mypy, `makemigrations --check`, актуальность `openapi.yaml`, pytest на PostgreSQL 16), frontend (eslint, prettier, tsc, vitest, актуальность типов API, сборка), e2e (Playwright), docker (сборка обоих образов без публикации + `docker compose up --wait` + `smoke.sh`).
+- pre-commit: ruff, ruff-format, mypy, eslint, prettier, tsc.
+- Проверено локально: `docker compose config`, запуск gunicorn с `DEBUG=false` на пустой БД (миграции + каталог через entrypoint, WhiteNoise) и `smoke.sh`. Docker-демона в среде разработки нет, поэтому образы впервые собираются в CI.
+
