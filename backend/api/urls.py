@@ -42,6 +42,7 @@ urlpatterns = [
     # panels
     path("panels/<int:pk>/", views.PanelViewSet.as_view(DETAIL)),
     path("panels/<int:pk>/validate/", views.PanelViewSet.as_view({"get": "validate_layout"})),
+    path("panels/<int:pk>/autolayout/", views.PanelViewSet.as_view({"post": "autolayout"})),
     path("panels/<int:pk>/unplaced/", views.PanelViewSet.as_view({"get": "unplaced"})),
     path("panels/<int:panel_pk>/placements/", views.PlacementViewSet.as_view(LIST)),
     path(

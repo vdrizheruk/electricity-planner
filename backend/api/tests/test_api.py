@@ -458,11 +458,12 @@ def test_catalog_filters(auth, seeded):
         "E.NEXT",
     }
     only = auth.get(f"{B}/catalog/products/", {"category": "mcb", "brand": "iek"}).json()
-    assert only["count"] == 6 and all(p["brand"]["slug"] == "iek" for p in only["results"])
+    assert only["count"] == 16 and all(p["brand"]["slug"] == "iek" for p in only["results"])
     q = auth.get(f"{B}/catalog/products/", {"q": "S201-C16"}).json()
     assert {p["sku"] for p in q["results"]} == {"S201-C16", "DS201-C16-30mA-A"}
     rcd = auth.get(
-        f"{B}/catalog/products/", {"category": "rcd", "leakage_ma": 30, "rcd_type": "A", "poles": 4}
+        f"{B}/catalog/products/",
+        {"category": "rcd", "leakage_ma": 30, "rcd_type": "A", "poles": 4, "rated_a": 40},
     ).json()
     assert rcd["count"] == 6
     rng = auth.get(f"{B}/catalog/products/", {"category": "mcb", "rated_a_min": 25}).json()

@@ -7,7 +7,9 @@ from calculations import GroupInput, ProjectCalculation, SystemInput, calculate_
 from .models import ConsumerGroup, Project
 
 
-def build_inputs(project: Project) -> tuple[list[GroupInput], SystemInput]:
+def build_inputs(
+    project: Project, group_ids: set[int] | None = None
+) -> tuple[list[GroupInput], SystemInput]:
     groups = [
         GroupInput(
             id=g.pk,
@@ -21,6 +23,7 @@ def build_inputs(project: Project) -> tuple[list[GroupInput], SystemInput]:
             wet_zone=g.wet_zone,
         )
         for g in project.groups.all()
+        if group_ids is None or g.pk in group_ids
     ]
     system = SystemInput(
         grid=project.grid,  # type: ignore[arg-type]
@@ -31,9 +34,14 @@ def build_inputs(project: Project) -> tuple[list[GroupInput], SystemInput]:
 
 
 @transaction.atomic
-def autoselect_project(project: Project, *, save: bool = True) -> ProjectCalculation:
-    """Run the calculation and (optionally) store the selected values on the groups."""
-    groups, system = build_inputs(project)
+def autoselect_project(
+    project: Project, *, save: bool = True, group_ids: set[int] | None = None
+) -> ProjectCalculation:
+    """Run the calculation and (optionally) store the selected values on the groups.
+
+    ``group_ids`` restricts the calculation to a subset (e.g. the groups of one panel).
+    """
+    groups, system = build_inputs(project, group_ids)
     result = calculate_project(groups, system)
     if save:
         by_id = {g.pk: g for g in project.groups.select_for_update()}

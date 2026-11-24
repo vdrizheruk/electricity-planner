@@ -17,6 +17,7 @@ from calculations import calculate_project
 from catalog.analogs import find_analogs
 from catalog.csv_io import export_csv, import_csv
 from catalog.models import Brand, Category, Product
+from panels.autolayout_db import AutolayoutError, AutolayoutOptions, autolayout
 from panels.layout_db import (
     create_version,
     enclosure_geometry,
@@ -32,6 +33,8 @@ from projects.services import autoselect_project, build_inputs
 
 from . import filters
 from .serializers import (
+    AutolayoutOptionsSerializer,
+    AutolayoutResultSerializer,
     BrandSerializer,
     BulkPlacementsSerializer,
     CalculationSerializer,
@@ -142,6 +145,47 @@ class PanelViewSet(OwnedMixin, viewsets.ModelViewSet[Panel]):
                 {"code": i.code, "message": i.message, "key": i.key, "other_key": i.other_key}
                 for i in validate_panel(panel)
             ]
+        )
+
+    @extend_schema(
+        request=AutolayoutOptionsSerializer,
+        responses=AutolayoutResultSerializer,
+    )
+    @action(detail=True, methods=["post"], url_path="autolayout")
+    def autolayout(self, request: Request, pk: str | None = None) -> Response:
+        """Auto-layout: input devices, relay/SPD, RCDs with their breakers; picks an enclosure.
+
+        Replaces all DIN-rail placements of the panel (mounting-panel items are kept).
+        Unassigned groups of a main panel are assigned to it.
+        """
+        panel = self.get_object()
+        opts_ser = AutolayoutOptionsSerializer(data=request.data)
+        opts_ser.is_valid(raise_exception=True)
+        try:
+            res = autolayout(panel, AutolayoutOptions(**opts_ser.validated_data))
+        except AutolayoutError as exc:
+            body = {
+                "code": exc.code,
+                "detail": str(exc),
+                "findings": [
+                    {"level": f.level, "code": f.code, "message": f.message, "group_id": f.group_id}
+                    for f in exc.findings
+                ],
+            }
+            return Response(body, status=status.HTTP_409_CONFLICT)
+        panel.refresh_from_db()
+        return Response(
+            {
+                "placements": PlacementSerializer(res.placements, many=True).data,
+                "required_modules": res.required_modules,
+                "capacity_modules": res.capacity_modules,
+                "enclosure": panel.enclosure_id,
+                "enclosure_changed": res.enclosure_changed,
+                "findings": [
+                    {"level": f.level, "code": f.code, "message": f.message, "group_id": f.group_id}
+                    for f in res.findings
+                ],
+            }
         )
 
     @extend_schema(responses=ConsumerGroupSerializer(many=True))
