@@ -14,7 +14,7 @@ python3.12 -m venv .venv && . .venv/bin/activate
 pip install -r requirements-dev.txt
 cp .env.example .env            # DATABASE_URL -> PostgreSQL 16
 python manage.py migrate
-python manage.py seed_catalog   # ~180 ориентировочных позиций каталога
+python manage.py seed_catalog   # 284 ориентировочные позиции каталога
 python manage.py createsuperuser
 python manage.py runserver
 pytest && ruff check . && mypy
@@ -24,6 +24,19 @@ pytest && ruff check . && mypy
 - Админка каталога (импорт/экспорт CSV): http://localhost:8000/admin/
 - Healthcheck: `/healthz`, `/readyz`
 
-Статус: этапы 0–3 (план, модели и каталог, расчёты, REST API). Docker и фронтенд — в следующих этапах.
+## Локальный запуск frontend
+
+```bash
+cd frontend
+npm install
+npm run dev            # http://localhost:5173, /api проксируется на :8000
+npm run gen:api        # типы из ../backend/openapi.yaml
+npm test && npm run lint && npm run typecheck
+npm run test:e2e       # Playwright (dnd); поднимает Django и Vite сам
+```
+
+Редактор щита: `/projects/<id>/board`. Палитра каталога и неразмещённые группы слева, drag&drop на DIN-рейку / монтажную панель / корзину, снап к модулю, подсветка допустимой позиции, мульти-выделение (Shift/Ctrl, рамка), Ctrl+C/V, Ctrl+Z / Ctrl+Shift+Z, zoom (Ctrl+колесо), pan (колесо, Alt+drag), автокомпоновка, версии, автосохранение, экспорт SVG/PNG. На экране уже 768 px — только просмотр.
+
+Статус: этапы 0–4 (план, модели и каталог, расчёты, REST API, редактор щита). Docker, однолинейная схема, резерв и PV — в следующих этапах.
 
 > Расчёты ориентировочные и не заменяют проект сертифицированного специалиста.
