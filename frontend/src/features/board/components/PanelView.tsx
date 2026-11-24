@@ -1,6 +1,7 @@
 import { useDroppable } from '@dnd-kit/core';
 import { useTranslation } from 'react-i18next';
 import { freeModules, MM_PX, MODULE_PX, RAIL_HEIGHT_PX } from '../model/geometry';
+import type { Energized } from '../model/energize';
 import type { Device, Group, Issue, PanelModel, Product } from '../model/types';
 import { buildWires, WIRE_GAP, wiresToSvg } from '../model/wires';
 import { useMemo } from 'react';
@@ -23,6 +24,7 @@ interface Props {
   showWires: boolean;
   threePhase: boolean;
   enclosures: Product[];
+  energized?: Map<string, Energized> | null;
   onActivate: () => void;
   onDeviceClick: (id: string, additive: boolean) => void;
   onEnclosure: (id: number | null) => void;
@@ -63,6 +65,7 @@ export function PanelView({
   showWires,
   threePhase,
   enclosures,
+  energized,
   onActivate,
   onDeviceClick,
   onEnclosure,
@@ -90,6 +93,7 @@ export function PanelView({
       selected={selection.includes(d.id)}
       invalid={bad.has(d.id)}
       readOnly={readOnly}
+      energized={energized?.get(d.id)}
       onClick={onDeviceClick}
     />
   );

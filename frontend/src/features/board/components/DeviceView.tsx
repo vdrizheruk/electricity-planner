@@ -1,6 +1,7 @@
 import { useDraggable } from '@dnd-kit/core';
 import { MM_PX, MODULE_PX } from '../model/geometry';
 import { colorOf, shortName } from '../model/match';
+import type { Energized } from '../model/energize';
 import type { Device, Group, Product } from '../model/types';
 
 interface Props {
@@ -11,6 +12,7 @@ interface Props {
   selected: boolean;
   invalid: boolean;
   readOnly: boolean;
+  energized?: Energized;
   onClick: (id: string, additive: boolean) => void;
 }
 
@@ -22,6 +24,7 @@ export function DeviceView({
   selected,
   invalid,
   readOnly,
+  energized,
   onClick,
 }: Props) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -47,15 +50,22 @@ export function DeviceView({
       data-testid="device"
       data-device-id={device.id}
       data-group-id={device.groupId ?? ''}
+      data-power={energized ? (energized.powered ? 'on' : 'off') : undefined}
       onClick={(e) => {
         e.stopPropagation();
         onClick(device.id, e.shiftKey || e.ctrlKey || e.metaKey);
       }}
       title={product ? `${product.brand.name} ${product.sku}\n${product.name}` : ''}
-      style={{ ...style, backgroundColor: colorOf(product), touchAction: 'none' }}
+      style={{
+        ...style,
+        backgroundColor: colorOf(product),
+        touchAction: 'none',
+        ...(energized && !energized.powered ? { opacity: 0.4, filter: 'grayscale(1)' } : {}),
+      }}
       className={[
         'absolute select-none overflow-hidden rounded border text-center text-[11px] leading-tight',
         selected ? 'ring-2 ring-blue-600' : '',
+        energized?.powered ? 'shadow-[0_0_0_2px_#16a34a]' : '',
         invalid ? 'border-red-600 border-2' : 'border-slate-600',
         isDragging ? 'opacity-30' : '',
         readOnly ? '' : 'cursor-grab',
