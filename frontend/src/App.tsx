@@ -6,6 +6,7 @@ import { setLanguage } from './i18n';
 import { LoginPage } from './features/auth/LoginPage';
 import { ProjectsPage } from './features/projects/ProjectsPage';
 import { ProjectPage } from './features/projects/ProjectPage';
+import { BomPage } from './features/bom/BomPage';
 import { PowerPage } from './features/power/PowerPage';
 import { PvPage } from './features/power/PvPage';
 import { BoardPage } from './features/board/BoardPage';
@@ -68,6 +69,7 @@ export function App() {
               <Route path="/projects/:id/board" element={<BoardPage />} />
               <Route path="/projects/:id/power" element={<PowerPage />} />
               <Route path="/projects/:id/pv" element={<PvPage />} />
+              <Route path="/projects/:id/bom" element={<BomPage />} />
             </>
           ) : (
             <Route path="*" element={<Navigate to="/login" replace />} />

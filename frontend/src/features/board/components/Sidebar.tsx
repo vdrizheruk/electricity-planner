@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { buildBom, formatUah } from '../model/bom';
+import { buildBom, formatUah, type BomExtra } from '../model/bom';
 import { GROUP_BINDABLE, type BoardStore } from '../model/store';
 import type { Group, Issue, PanelModel, Product } from '../model/types';
 import { useBoard } from '../useStore';
@@ -7,12 +7,14 @@ import { useBoard } from '../useStore';
 export function BomView({
   panels,
   products,
+  extra,
 }: {
   panels: PanelModel[];
   products: Map<number, Product>;
+  extra?: BomExtra;
 }) {
   const { t } = useTranslation();
-  const bom = buildBom(panels, products);
+  const bom = buildBom(panels, products, extra);
   return (
     <div data-testid="bom">
       <h2 className="mb-1 font-semibold">{t('board.bom')}</h2>
@@ -35,6 +37,12 @@ export function BomView({
             <td colSpan={2}>{t('board.solar')}</td>
             <td className="text-right">{formatUah(bom.solarCents)}</td>
           </tr>
+          {bom.backupCents > 0 && (
+            <tr>
+              <td colSpan={2}>{t('board.backup')}</td>
+              <td className="text-right">{formatUah(bom.backupCents)}</td>
+            </tr>
+          )}
           <tr className="border-t font-semibold">
             <td colSpan={2}>{t('board.total')}</td>
             <td data-testid="bom-total" className="text-right">

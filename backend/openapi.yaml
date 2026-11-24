@@ -1360,6 +1360,28 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/v1/projects/{id}/bom/:
+    get:
+      operationId: projects_bom_retrieve
+      description: 'Bill of materials: «Щиты», «Солнечная система», «Резервное питание»
+        and the total.'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bom'
+          description: ''
   /api/v1/projects/{id}/calc/:
     get:
       operationId: projects_calc_retrieve
@@ -1381,6 +1403,82 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Calculation'
+          description: ''
+  /api/v1/projects/{id}/export/pdf/:
+    get:
+      operationId: projects_export_pdf_retrieve
+      description: PDF with the bill of materials only.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+          description: ''
+    post:
+      operationId: projects_export_pdf_create
+      description: PDF with the bill of materials plus board views / single-line diagrams
+        (SVG).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PdfExportRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PdfExportRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PdfExportRequestRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/v1/projects/{id}/export/xlsx/:
+    get:
+      operationId: projects_export_xlsx_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
           description: ''
   /api/v1/projects/{id}/power/:
     get:
@@ -1998,6 +2096,99 @@ components:
         * `L1` - L1
         * `L2` - L2
         * `L3` - L3
+    Bom:
+      type: object
+      properties:
+        sections:
+          type: array
+          items:
+            $ref: '#/components/schemas/BomSection'
+        total:
+          type: string
+        unverified:
+          type: integer
+        missing:
+          type: array
+          items:
+            type: string
+        currency:
+          type: string
+      required:
+      - currency
+      - missing
+      - sections
+      - total
+      - unverified
+    BomBlock:
+      type: object
+      properties:
+        key:
+          type: string
+        title:
+          type: string
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/BomLine'
+        total:
+          type: string
+        estimated:
+          type: boolean
+      required:
+      - estimated
+      - key
+      - lines
+      - title
+      - total
+    BomLine:
+      type: object
+      properties:
+        product_id:
+          type: integer
+        brand:
+          type: string
+        sku:
+          type: string
+        name:
+          type: string
+        unit:
+          type: string
+        qty:
+          type: integer
+        unit_price:
+          type: string
+        total:
+          type: string
+        needs_verification:
+          type: boolean
+      required:
+      - brand
+      - name
+      - needs_verification
+      - product_id
+      - qty
+      - sku
+      - total
+      - unit
+      - unit_price
+    BomSection:
+      type: object
+      properties:
+        key:
+          $ref: '#/components/schemas/KeyEnum'
+        title:
+          type: string
+        blocks:
+          type: array
+          items:
+            $ref: '#/components/schemas/BomBlock'
+        total:
+          type: string
+      required:
+      - blocks
+      - key
+      - title
+      - total
     Brand:
       type: object
       properties:
@@ -2484,18 +2675,16 @@ components:
       - key
       - message
       - other_key
-    KindEnum:
+    KeyEnum:
       enum:
-      - main
-      - floor
+      - boards
+      - solar
       - backup
-      - dc
       type: string
       description: |-
-        * `main` - ГРЩ
-        * `floor` - Этажный
-        * `backup` - Щит резерва / АВР
-        * `dc` - DC-бокс
+        * `boards` - boards
+        * `solar` - solar
+        * `backup` - backup
     LanguageEnum:
       enum:
       - ru
@@ -2753,7 +2942,7 @@ components:
           type: string
           maxLength: 120
         kind:
-          $ref: '#/components/schemas/KindEnum'
+          $ref: '#/components/schemas/PanelKindEnum'
         enclosure:
           type: integer
           nullable: true
@@ -2781,6 +2970,18 @@ components:
       - name
       - project
       - rails
+    PanelKindEnum:
+      enum:
+      - main
+      - floor
+      - backup
+      - dc
+      type: string
+      description: |-
+        * `main` - ГРЩ
+        * `floor` - Этажный
+        * `backup` - Щит резерва / АВР
+        * `dc` - DC-бокс
     PanelLink:
       type: object
       properties:
@@ -2823,7 +3024,7 @@ components:
           minLength: 1
           maxLength: 120
         kind:
-          $ref: '#/components/schemas/KindEnum'
+          $ref: '#/components/schemas/PanelKindEnum'
         enclosure:
           type: integer
           nullable: true
@@ -2889,7 +3090,7 @@ components:
           minLength: 1
           maxLength: 120
         kind:
-          $ref: '#/components/schemas/KindEnum'
+          $ref: '#/components/schemas/PanelKindEnum'
         enclosure:
           type: integer
           nullable: true
@@ -3058,6 +3259,37 @@ components:
       properties:
         language:
           $ref: '#/components/schemas/LanguageEnum'
+    PdfExportRequestRequest:
+      type: object
+      properties:
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/PdfImageRequest'
+    PdfImageKindEnum:
+      enum:
+      - board
+      - diagram
+      type: string
+      description: |-
+        * `board` - board
+        * `diagram` - diagram
+    PdfImageRequest:
+      type: object
+      properties:
+        panel_id:
+          type: integer
+          minimum: 1
+        kind:
+          $ref: '#/components/schemas/PdfImageKindEnum'
+        svg:
+          type: string
+          minLength: 1
+          maxLength: 2000000
+      required:
+      - kind
+      - panel_id
+      - svg
     PhaseEnum:
       enum:
       - auto

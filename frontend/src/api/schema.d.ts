@@ -564,6 +564,23 @@ export interface paths {
         patch: operations["projects_partial_update"];
         trace?: never;
     };
+    "/api/v1/projects/{id}/bom/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Bill of materials: «Щиты», «Солнечная система», «Резервное питание» and the total. */
+        get: operations["projects_bom_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{id}/calc/": {
         parameters: {
             query?: never;
@@ -573,6 +590,40 @@ export interface paths {
         };
         /** @description Calculate (without saving): demand, phases, RCDs, per-group selection, findings. */
         get: operations["projects_calc_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{id}/export/pdf/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description PDF with the bill of materials only. */
+        get: operations["projects_export_pdf_retrieve"];
+        put?: never;
+        /** @description PDF with the bill of materials plus board views / single-line diagrams (SVG). */
+        post: operations["projects_export_pdf_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{id}/export/xlsx/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["projects_export_xlsx_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -859,6 +910,37 @@ export interface components {
          * @enum {string}
          */
         BackupPhaseEnum: "L1" | "L2" | "L3";
+        Bom: {
+            sections: components["schemas"]["BomSection"][];
+            total: string;
+            unverified: number;
+            missing: string[];
+            currency: string;
+        };
+        BomBlock: {
+            key: string;
+            title: string;
+            lines: components["schemas"]["BomLine"][];
+            total: string;
+            estimated: boolean;
+        };
+        BomLine: {
+            product_id: number;
+            brand: string;
+            sku: string;
+            name: string;
+            unit: string;
+            qty: number;
+            unit_price: string;
+            total: string;
+            needs_verification: boolean;
+        };
+        BomSection: {
+            key: components["schemas"]["KeyEnum"];
+            title: string;
+            blocks: components["schemas"]["BomBlock"][];
+            total: string;
+        };
         Brand: {
             readonly id: number;
             name: string;
@@ -1068,13 +1150,12 @@ export interface components {
             other_key: string | null;
         };
         /**
-         * @description * `main` - ГРЩ
-         *     * `floor` - Этажный
-         *     * `backup` - Щит резерва / АВР
-         *     * `dc` - DC-бокс
+         * @description * `boards` - boards
+         *     * `solar` - solar
+         *     * `backup` - backup
          * @enum {string}
          */
-        KindEnum: "main" | "floor" | "backup" | "dc";
+        KeyEnum: "boards" | "solar" | "backup";
         /**
          * @description * `ru` - Русский
          *     * `uk` - Українська
@@ -1234,7 +1315,7 @@ export interface components {
             readonly id: number;
             readonly project: number;
             name: string;
-            kind?: components["schemas"]["KindEnum"];
+            kind?: components["schemas"]["PanelKindEnum"];
             enclosure?: number | null;
             ip?: number;
             mounting?: components["schemas"]["MountingEnum"];
@@ -1244,6 +1325,14 @@ export interface components {
                 [key: string]: number | null;
             };
         };
+        /**
+         * @description * `main` - ГРЩ
+         *     * `floor` - Этажный
+         *     * `backup` - Щит резерва / АВР
+         *     * `dc` - DC-бокс
+         * @enum {string}
+         */
+        PanelKindEnum: "main" | "floor" | "backup" | "dc";
         PanelLink: {
             readonly id: number;
             source: number;
@@ -1257,7 +1346,7 @@ export interface components {
         };
         PanelRequest: {
             name: string;
-            kind?: components["schemas"]["KindEnum"];
+            kind?: components["schemas"]["PanelKindEnum"];
             enclosure?: number | null;
             ip?: number;
             mounting?: components["schemas"]["MountingEnum"];
@@ -1289,7 +1378,7 @@ export interface components {
         };
         PatchedPanelRequest: {
             name?: string;
-            kind?: components["schemas"]["KindEnum"];
+            kind?: components["schemas"]["PanelKindEnum"];
             enclosure?: number | null;
             ip?: number;
             mounting?: components["schemas"]["MountingEnum"];
@@ -1352,6 +1441,20 @@ export interface components {
         };
         PatchedUserRequest: {
             language?: components["schemas"]["LanguageEnum"];
+        };
+        PdfExportRequestRequest: {
+            images?: components["schemas"]["PdfImageRequest"][];
+        };
+        /**
+         * @description * `board` - board
+         *     * `diagram` - diagram
+         * @enum {string}
+         */
+        PdfImageKindEnum: "board" | "diagram";
+        PdfImageRequest: {
+            panel_id: number;
+            kind: components["schemas"]["PdfImageKindEnum"];
+            svg: string;
         };
         /**
          * @description * `auto` - Авто
@@ -2878,6 +2981,27 @@ export interface operations {
             };
         };
     };
+    projects_bom_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Bom"];
+                };
+            };
+        };
+    };
     projects_calc_retrieve: {
         parameters: {
             query?: never;
@@ -2895,6 +3019,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Calculation"];
+                };
+            };
+        };
+    };
+    projects_export_pdf_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+        };
+    };
+    projects_export_pdf_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PdfExportRequestRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PdfExportRequestRequest"];
+                "multipart/form-data": components["schemas"]["PdfExportRequestRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+        };
+    };
+    projects_export_xlsx_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
                 };
             };
         };

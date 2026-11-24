@@ -600,3 +600,54 @@ class PvCheckSerializer(serializers.Serializer[None]):
     findings = PowerFindingSerializer(many=True)
     components = PvComponentSerializer(many=True)
     total_price = serializers.CharField()
+
+
+# ----------------------------------------------------------------- exports
+class BomLineSerializer(serializers.Serializer[None]):
+    product_id = serializers.IntegerField()
+    brand = serializers.CharField()
+    sku = serializers.CharField()
+    name = serializers.CharField()
+    unit = serializers.CharField()
+    qty = serializers.IntegerField()
+    unit_price = serializers.CharField()
+    total = serializers.CharField()
+    needs_verification = serializers.BooleanField()
+
+
+class BomBlockSerializer(serializers.Serializer[None]):
+    key = serializers.CharField()
+    title = serializers.CharField()
+    lines = BomLineSerializer(many=True)
+    total = serializers.CharField()
+    estimated = serializers.BooleanField()
+
+
+class BomSectionSerializer(serializers.Serializer[None]):
+    key = serializers.ChoiceField(choices=["boards", "solar", "backup"])
+    title = serializers.CharField()
+    blocks = BomBlockSerializer(many=True)
+    total = serializers.CharField()
+
+
+class BomSerializer(serializers.Serializer[None]):
+    sections = BomSectionSerializer(many=True)
+    total = serializers.CharField()
+    unverified = serializers.IntegerField()
+    missing = serializers.ListField(child=serializers.CharField())
+    currency = serializers.CharField()
+
+
+class PdfImageSerializer(serializers.Serializer[None]):
+    panel_id = serializers.IntegerField(min_value=1)
+    kind = serializers.ChoiceField(choices=["board", "diagram"])
+    svg = serializers.CharField(max_length=2_000_000, trim_whitespace=True)
+
+    def validate_svg(self, value: str) -> str:
+        if not value.lstrip().startswith(("<svg", "<?xml")) or "<svg" not in value[:2000]:
+            raise serializers.ValidationError("Ожидается SVG")
+        return value
+
+
+class PdfExportRequestSerializer(serializers.Serializer[None]):
+    images = PdfImageSerializer(many=True, max_length=60, required=False, default=list)

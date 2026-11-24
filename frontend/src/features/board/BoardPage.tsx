@@ -13,7 +13,9 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
-import { groups as groupsApi, panels as panelsApi } from '../../api/endpoints';
+import { bomApi, groups as groupsApi, panels as panelsApi } from '../../api/endpoints';
+import { saveBlob } from '../../shared/saveBlob';
+import { toCents, type BomExtra } from './model/bom';
 import { loadBoard, reloadPanel, savePanel } from './api';
 import { DiagramView } from './components/DiagramView';
 import { AutolayoutDialog, VersionsDialog } from './components/Dialogs';
@@ -92,8 +94,20 @@ export function BoardPage() {
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
+  const [extra, setExtra] = useState<BomExtra>({});
+
   const load = useCallback(async () => {
     const b = await loadBoard(projectId);
+    // Solar and backup equipment are not drawn in the editor: take their totals from the server.
+    void bomApi
+      .get(projectId)
+      .then((bom) =>
+        setExtra({
+          solarCents: toCents(bom.sections.find((x) => x.key === 'solar')?.total ?? '0'),
+          backupCents: toCents(bom.sections.find((x) => x.key === 'backup')?.total ?? '0'),
+        }),
+      )
+      .catch(() => setExtra({}));
     store.getState().load({ panels: b.panels, products: b.products, groups: b.groups });
     setTier(b.project.price_tier ?? 'mid');
     setThreePhase(b.project.grid === '3ph');
@@ -374,12 +388,26 @@ export function BoardPage() {
     await refreshPanel(panelId);
   }
 
-  function download(name: string, blob: Blob) {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = name;
-    a.click();
-    URL.revokeObjectURL(a.href);
+  const download = saveBlob;
+  async function exportPdf() {
+    await saver.current?.flush();
+    const images = panelList.flatMap((p) => [
+      {
+        panel_id: p.id,
+        kind: 'board' as const,
+        svg: boardToSvg(p, products, groups, threePhase).svg,
+      },
+      {
+        panel_id: p.id,
+        kind: 'diagram' as const,
+        svg: diagramToSvg(buildDiagram(p, products, groups), p.name).svg,
+      },
+    ]);
+    try {
+      download(`specification-${projectId}.pdf`, await bomApi.pdf(projectId, images));
+    } catch (e) {
+      flash(e instanceof Error ? e.message : String(e));
+    }
   }
   function currentSvg() {
     if (!active) return null;
@@ -540,6 +568,9 @@ export function BoardPage() {
           <button className="btn" onClick={exportPng}>
             {t('board.exportPng')}
           </button>
+          <button className="btn" data-testid="export-pdf-board" onClick={() => void exportPdf()}>
+            {t('board.exportPdf')}
+          </button>
           <button className="btn" disabled={!active} onClick={exportLabels}>
             {t('board.exportLabels')}
           </button>
@@ -665,7 +696,7 @@ export function BoardPage() {
           <aside className="hidden w-72 shrink-0 flex-col gap-4 overflow-y-auto border-l bg-white p-2 lg:flex">
             {!readOnly && <Properties store={store} groups={groups} products={products} />}
             <IssuesView issues={issuesByPanel.flat()} />
-            <BomView panels={panelList} products={products} />
+            <BomView panels={panelList} products={products} extra={extra} />
           </aside>
         </div>
       </div>

@@ -24,8 +24,10 @@ export interface Bom {
   lines: BomLine[];
   /** «Щиты» */
   boardsCents: number;
-  /** «Солнечная система» — filled by the PV stage. */
+  /** «Солнечная система» — from the server (PV scheme), not part of the board editor. */
   solarCents: number;
+  /** «Резервное питание» — generator, inverter, battery from the server. */
+  backupCents: number;
   totalCents: number;
 }
 
@@ -83,7 +85,16 @@ function panelItems(panel: PanelModel, products: Map<number, Product>) {
   return items;
 }
 
-export function buildBom(panels: PanelModel[], products: Map<number, Product>): Bom {
+export interface BomExtra {
+  solarCents?: number;
+  backupCents?: number;
+}
+
+export function buildBom(
+  panels: PanelModel[],
+  products: Map<number, Product>,
+  extra: BomExtra = {},
+): Bom {
   const perPanel: PanelBom[] = panels.map((panel) => {
     const lines = aggregate(panelItems(panel, products));
     return {
@@ -95,5 +106,14 @@ export function buildBom(panels: PanelModel[], products: Map<number, Product>): 
   });
   const lines = aggregate(panels.flatMap((p) => panelItems(p, products)));
   const boards = lines.reduce((n, l) => n + l.totalCents, 0);
-  return { panels: perPanel, lines, boardsCents: boards, solarCents: 0, totalCents: boards };
+  const solar = extra.solarCents ?? 0;
+  const backup = extra.backupCents ?? 0;
+  return {
+    panels: perPanel,
+    lines,
+    boardsCents: boards,
+    solarCents: solar,
+    backupCents: backup,
+    totalCents: boards + solar + backup,
+  };
 }
