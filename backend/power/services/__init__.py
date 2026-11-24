@@ -25,8 +25,15 @@ from .pv import (
     PvResult,
     analyze_pv,
 )
+from .simulate import GroupState, SimInput, SimResult, SourceState, Switches, simulate
 
 __all__ = [
+    "GroupState",
+    "SimInput",
+    "SimResult",
+    "SourceState",
+    "Switches",
+    "simulate",
     "ArrayResult",
     "PvArray",
     "PvComponent",
