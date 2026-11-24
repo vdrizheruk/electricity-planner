@@ -200,6 +200,38 @@ test.describe('board editor', () => {
     });
   });
 
+  test('single-line diagram mirrors the board both ways', async ({ page }) => {
+    await page.getByRole('button', { name: 'Автокомпоновка' }).click();
+    await page.getByRole('button', { name: 'Выполнить' }).click();
+    await expect(page.getByRole('dialog')).toHaveCount(0, { timeout: 15_000 });
+    const devices = await page.getByTestId('device').count();
+    expect(devices).toBeGreaterThan(3);
+
+    await page.getByTestId('tab-diagram').click();
+    // feeder and bus are extra nodes
+    await expect(page.getByTestId('diagram-node')).toHaveCount(devices + 2);
+    await page.screenshot({ path: 'test-results/diagram.png' });
+
+    // select on the diagram -> selected on the board
+    const node = page.getByTestId('diagram-node').filter({ hasText: 'QF1' }).first();
+    const id = (await node.getAttribute('data-node-id'))!;
+    await node.click();
+    await page.getByTestId('tab-board').click();
+    await expect(page.locator(`[data-device-id="${id}"]`)).toHaveClass(/ring-blue-600/);
+
+    // delete on the board -> node disappears from the diagram
+    await page.keyboard.press('Delete');
+    await page.getByTestId('tab-diagram').click();
+    await expect(page.getByTestId('diagram-node')).toHaveCount(devices + 1);
+
+    // delete from the diagram view -> device disappears on the board
+    await page.getByTestId('diagram-node').filter({ hasText: 'QF' }).first().click();
+    await page.keyboard.press('Delete');
+    await expect(page.getByTestId('diagram-node')).toHaveCount(devices);
+    await page.getByTestId('tab-board').click();
+    await expect(page.getByTestId('device')).toHaveCount(devices - 2);
+  });
+
   test('mobile viewport is read-only', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 800 });
     await expect(page.getByText('Просмотр', { exact: false })).toBeVisible();

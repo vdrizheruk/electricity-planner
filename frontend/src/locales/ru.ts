@@ -61,6 +61,8 @@ export const ru = {
     zoomOut: 'Уменьшить',
     zoomReset: 'Сброс',
     exportSvg: 'SVG',
+    exportLabels: 'Наклейки',
+    view: { board: 'Щит', diagram: 'Схема' },
     exportPng: 'PNG',
     free: 'Свободно модулей',
     mounting: 'Монтажная панель',

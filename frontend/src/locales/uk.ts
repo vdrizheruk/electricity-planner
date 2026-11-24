@@ -69,6 +69,8 @@ export const uk: Dict = {
     zoomOut: 'Зменшити',
     zoomReset: 'Скидання',
     exportSvg: 'SVG',
+    exportLabels: 'Наклейки',
+    view: { board: 'Щит', diagram: 'Схема' },
     exportPng: 'PNG',
     free: 'Вільно модулів',
     mounting: 'Монтажна панель',

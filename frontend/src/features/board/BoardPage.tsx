@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
 import { groups as groupsApi, panels as panelsApi } from '../../api/endpoints';
 import { loadBoard, reloadPanel, savePanel } from './api';
+import { DiagramView } from './components/DiagramView';
 import { AutolayoutDialog, VersionsDialog } from './components/Dialogs';
 import { PanelView, type Hover } from './components/PanelView';
 import { Palette } from './components/Palette';
@@ -22,7 +23,10 @@ import { BomView, IssuesView, Properties } from './components/Sidebar';
 import { UnplacedList } from './components/UnplacedList';
 import { probe, type DragData } from './dragTarget';
 import { createAutosaver, type Autosaver } from './model/autosave';
+import { buildDiagram } from './model/diagram';
+import { diagramToSvg } from './model/diagramSvg';
 import { boardToSvg } from './model/exportSvg';
+import { labelItems, labelsToSvg } from './model/labels';
 import {
   findFreeSpot,
   isPlaceableOnRail,
@@ -63,6 +67,7 @@ export function BoardPage() {
   const [hover, setHover] = useState<Hover>(null);
   const [drag, setDrag] = useState<DragData | null>(null);
   const [toast, setToast] = useState('');
+  const [mode, setMode] = useState<'board' | 'diagram'>('board');
   const [dialog, setDialog] = useState<'autolayout' | 'versions' | null>(null);
   const [marquee, setMarquee] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(
     null,
@@ -365,14 +370,29 @@ export function BoardPage() {
     a.click();
     URL.revokeObjectURL(a.href);
   }
-  function exportSvg() {
+  function currentSvg() {
+    if (!active) return null;
+    return mode === 'diagram'
+      ? diagramToSvg(buildDiagram(active, products, groups), active.name)
+      : boardToSvg(active, products, groups);
+  }
+  function exportLabels() {
     if (!active) return;
-    const { svg } = boardToSvg(active, products, groups);
-    download(`${active.name}.svg`, new Blob([svg], { type: 'image/svg+xml' }));
+    const { svg } = labelsToSvg(labelItems(active, products, groups), active.name);
+    download(`${active.name}-labels.svg`, new Blob([svg], { type: 'image/svg+xml' }));
+  }
+  function exportSvg() {
+    const r = currentSvg();
+    if (!active || !r) return;
+    download(
+      `${active.name}${mode === 'diagram' ? '-scheme' : ''}.svg`,
+      new Blob([r.svg], { type: 'image/svg+xml' }),
+    );
   }
   function exportPng() {
-    if (!active) return;
-    const { svg, width, height } = boardToSvg(active, products, groups);
+    const r = currentSvg();
+    if (!active || !r) return;
+    const { svg, width, height } = r;
     const img = new Image();
     img.onload = () => {
       const c = document.createElement('canvas');
@@ -419,6 +439,20 @@ export function BoardPage() {
     >
       <div className="flex h-full flex-col">
         <div className="flex flex-wrap items-center gap-2 border-b bg-white px-3 py-1.5">
+          <div role="tablist" className="flex overflow-hidden rounded border">
+            {(['board', 'diagram'] as const).map((m) => (
+              <button
+                key={m}
+                role="tab"
+                aria-selected={mode === m}
+                data-testid={`tab-${m}`}
+                className={`px-3 py-1 text-sm ${mode === m ? 'bg-blue-600 text-white' : 'bg-white'}`}
+                onClick={() => setMode(m)}
+              >
+                {t(`board.view.${m}`)}
+              </button>
+            ))}
+          </div>
           <button
             className="btn"
             disabled={readOnly || !canUndo}
@@ -495,6 +529,9 @@ export function BoardPage() {
           <button className="btn" onClick={exportPng}>
             {t('board.exportPng')}
           </button>
+          <button className="btn" disabled={!active} onClick={exportLabels}>
+            {t('board.exportLabels')}
+          </button>
           {!readOnly && <Trash label={t('board.trash')} />}
           <span
             data-testid="save-state"
@@ -513,65 +550,71 @@ export function BoardPage() {
               <Palette products={palette} onAdd={(p) => addToActive(p)} readOnly={readOnly} />
             </aside>
           )}
-          <div
-            ref={canvas}
-            data-surface="1"
-            data-testid="canvas"
-            className="relative min-w-0 flex-1 overflow-hidden bg-slate-100"
-            onWheel={onWheel}
-            onPointerDown={onCanvasDown}
-            onPointerMove={onCanvasMove}
-            onPointerUp={onCanvasUp}
-          >
-            <div
-              data-surface="1"
-              style={{
-                transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})`,
-                transformOrigin: '0 0',
-              }}
-              className="inline-block p-4"
-            >
-              {panelList.map((p) => (
-                <div key={p.id}>
-                  <PanelView
-                    panel={p}
-                    products={products}
-                    groups={groups}
-                    selection={selection}
-                    issues={issuesByPanel[panelList.indexOf(p)] ?? []}
-                    hover={hover}
-                    active={active?.id === p.id}
-                    readOnly={readOnly}
-                    enclosures={enclosures}
-                    onActivate={() => setActiveId(p.id)}
-                    onDeviceClick={(id, add) =>
-                      store.getState().select(id, add ? 'toggle' : 'replace')
-                    }
-                    onEnclosure={(id) => void setEnclosure(p.id, id)}
-                  />
-                </div>
-              ))}
+          {mode === 'diagram' && active ? (
+            <div className="min-w-0 flex-1 bg-slate-50">
+              <DiagramView store={store} panelId={active.id} />
             </div>
-            {marquee && (
+          ) : (
+            <div
+              ref={canvas}
+              data-surface="1"
+              data-testid="canvas"
+              className="relative min-w-0 flex-1 overflow-hidden bg-slate-100"
+              onWheel={onWheel}
+              onPointerDown={onCanvasDown}
+              onPointerMove={onCanvasMove}
+              onPointerUp={onCanvasUp}
+            >
               <div
-                className="pointer-events-none fixed border border-blue-600 bg-blue-300/20"
+                data-surface="1"
                 style={{
-                  left: Math.min(marquee.x0, marquee.x1),
-                  top: Math.min(marquee.y0, marquee.y1),
-                  width: Math.abs(marquee.x1 - marquee.x0),
-                  height: Math.abs(marquee.y1 - marquee.y0),
+                  transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})`,
+                  transformOrigin: '0 0',
                 }}
-              />
-            )}
-            {toast && (
-              <div
-                data-testid="toast"
-                className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded bg-slate-800 px-3 py-1 text-sm text-white"
+                className="inline-block p-4"
               >
-                {toast}
+                {panelList.map((p) => (
+                  <div key={p.id}>
+                    <PanelView
+                      panel={p}
+                      products={products}
+                      groups={groups}
+                      selection={selection}
+                      issues={issuesByPanel[panelList.indexOf(p)] ?? []}
+                      hover={hover}
+                      active={active?.id === p.id}
+                      readOnly={readOnly}
+                      enclosures={enclosures}
+                      onActivate={() => setActiveId(p.id)}
+                      onDeviceClick={(id, add) =>
+                        store.getState().select(id, add ? 'toggle' : 'replace')
+                      }
+                      onEnclosure={(id) => void setEnclosure(p.id, id)}
+                    />
+                  </div>
+                ))}
               </div>
-            )}
-          </div>
+              {marquee && (
+                <div
+                  className="pointer-events-none fixed border border-blue-600 bg-blue-300/20"
+                  style={{
+                    left: Math.min(marquee.x0, marquee.x1),
+                    top: Math.min(marquee.y0, marquee.y1),
+                    width: Math.abs(marquee.x1 - marquee.x0),
+                    height: Math.abs(marquee.y1 - marquee.y0),
+                  }}
+                />
+              )}
+              {toast && (
+                <div
+                  data-testid="toast"
+                  className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded bg-slate-800 px-3 py-1 text-sm text-white"
+                >
+                  {toast}
+                </div>
+              )}
+            </div>
+          )}
           <aside className="hidden w-72 shrink-0 flex-col gap-4 overflow-y-auto border-l bg-white p-2 lg:flex">
             {!readOnly && <Properties store={store} groups={groups} products={products} />}
             <IssuesView issues={issuesByPanel.flat()} />
