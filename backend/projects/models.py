@@ -175,8 +175,10 @@ class ConsumerGroup(models.Model):
     )
     length_m = models.DecimalField("длина линии, м", max_digits=6, decimal_places=1, default=20)
     backed_up = models.BooleanField("резервируемая", default=False)
+    wet_zone = models.BooleanField("влажная зона", default=False)
 
     # Results of auto-selection (filled by the calculations service in stage 2).
+    assigned_phase = models.CharField(max_length=3, blank=True)
     breaker_a = models.PositiveSmallIntegerField(null=True, blank=True)
     curve = models.CharField(max_length=1, blank=True)
     cable_mm2 = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
