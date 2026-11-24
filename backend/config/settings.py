@@ -113,9 +113,9 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.UserRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        "anon": "60/min",
-        "user": "600/min",
-        "auth": "10/min",
+        "anon": env.str("THROTTLE_ANON", default="60/min"),
+        "user": env.str("THROTTLE_USER", default="600/min"),
+        "auth": env.str("THROTTLE_AUTH", default="10/min"),
     },
 }
 SPECTACULAR_SETTINGS = {

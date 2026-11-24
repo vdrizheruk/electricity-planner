@@ -12,6 +12,9 @@ export type LayoutVersion = S['LayoutVersion'];
 export type Calculation = S['Calculation'];
 export type AutolayoutResult = S['AutolayoutResult'];
 export type AutolayoutOptions = S['AutolayoutOptionsRequest'];
+export type PowerSystem = S['PowerSystem'];
+export type PowerCheck = S['PowerCheck'];
+export type PowerApplyResult = S['PowerApplyResult'];
 export type BulkItem = S['BulkPlacementItemRequest'];
 
 export const auth = {
@@ -68,4 +71,12 @@ export const groups = {
 
 export const catalog = {
   products: () => getAll<Product>('/catalog/products/'),
+};
+
+export const power = {
+  get: (projectId: number) => api.get<PowerSystem>(`/projects/${projectId}/power/`),
+  update: (projectId: number, data: Partial<PowerSystem>) =>
+    api.patch<PowerSystem>(`/projects/${projectId}/power/`, data),
+  check: (projectId: number) => api.get<PowerCheck>(`/projects/${projectId}/power/check/`),
+  apply: (projectId: number) => api.post<PowerApplyResult>(`/projects/${projectId}/power/apply/`),
 };

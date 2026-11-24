@@ -19,6 +19,12 @@ export default defineConfig({
         {
           command: 'python manage.py runserver 8000 --noreload',
           cwd: '../backend',
+          // every test registers a fresh user: lift the rate limits of the throwaway e2e server
+          env: {
+            THROTTLE_ANON: '100000/min',
+            THROTTLE_USER: '100000/min',
+            THROTTLE_AUTH: '100000/min',
+          },
           url: 'http://localhost:8000/healthz',
           reuseExistingServer: true,
           timeout: 60_000,
