@@ -61,6 +61,17 @@ describe('buildBom', () => {
     expect(bom.totalCents).toBe(bom.boardsCents + bom.solarCents);
   });
 
+  it('adds the server-side solar and backup sections to the total', () => {
+    const bom = buildBom([panel({ devices: [device('d1')] })], products, {
+      solarCents: 1_000_00,
+      backupCents: 250_50,
+    });
+    expect(bom.boardsCents).toBe(10550);
+    expect(bom.solarCents).toBe(100000);
+    expect(bom.backupCents).toBe(25050);
+    expect(bom.totalCents).toBe(10550 + 100000 + 25050);
+  });
+
   it('is empty for empty panels and ignores unknown products', () => {
     expect(buildBom([panel()], products).totalCents).toBe(0);
     const p = panel({ devices: [device('x', { productId: 999 })] });

@@ -18,6 +18,9 @@ export type PowerApplyResult = S['PowerApplyResult'];
 export type PvSystem = S['PvSystem'];
 export type PvArrayDto = S['PvArray'];
 export type PvCheck = S['PvCheck'];
+export type Bom = S['Bom'];
+export type BomSection = S['BomSection'];
+export type PdfDrawing = S['PdfImageRequest'];
 export type BulkItem = S['BulkPlacementItemRequest'];
 
 export const auth = {
@@ -90,4 +93,13 @@ export const pv = {
     api.patch<PvSystem>(`/projects/${projectId}/pv/`, data),
   check: (projectId: number) => api.get<PvCheck>(`/projects/${projectId}/pv/check/`),
   apply: (projectId: number) => api.post<PowerApplyResult>(`/projects/${projectId}/pv/apply/`),
+};
+
+export const bomApi = {
+  get: (projectId: number) => api.get<Bom>(`/projects/${projectId}/bom/`),
+  xlsx: (projectId: number) => api.download('GET', `/projects/${projectId}/export/xlsx/`),
+  pdf: (projectId: number, images: PdfDrawing[] = []) =>
+    images.length > 0
+      ? api.download('POST', `/projects/${projectId}/export/pdf/`, { images })
+      : api.download('GET', `/projects/${projectId}/export/pdf/`),
 };

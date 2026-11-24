@@ -50,6 +50,9 @@ export function ProjectPage() {
         <Link className="btn" data-testid="pv-link" to={`/projects/${id}/pv`}>
           {t('pv.open')}
         </Link>
+        <Link className="btn" data-testid="bom-link" to={`/projects/${id}/bom`}>
+          {t('bomPage.open')}
+        </Link>
         <Link className="btn btn-primary" to={`/projects/${id}/board`}>
           {t('project.editor')}
         </Link>

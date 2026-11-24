@@ -1,0 +1,70 @@
+{% load exports_extras %}<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<style>
+  @page { size: A4; margin: 14mm 12mm 16mm; @bottom-right { content: counter(page) " / " counter(pages); font-size: 8pt; color: #64748b; } }
+  body { font-family: "DejaVu Sans", "Liberation Sans", sans-serif; font-size: 8.5pt; color: #0f172a; }
+  h1 { font-size: 16pt; margin: 0 0 2mm; }
+  h2 { font-size: 12pt; margin: 6mm 0 2mm; background: #dbeafe; padding: 1.5mm 2mm; }
+  h3 { font-size: 10pt; margin: 4mm 0 1mm; }
+  .meta { color: #475569; margin-bottom: 3mm; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 2mm; }
+  th { background: #e2e8f0; text-align: left; padding: 1mm 1.5mm; border-bottom: 0.3mm solid #94a3b8; }
+  td { padding: 0.8mm 1.5mm; border-bottom: 0.2mm solid #e2e8f0; vertical-align: top; }
+  .r { text-align: right; white-space: nowrap; }
+  .tot td { font-weight: bold; border-top: 0.3mm solid #94a3b8; }
+  .est { color: #92400e; font-weight: normal; font-size: 8pt; }
+  .summary { width: 70%; margin-left: auto; margin-top: 6mm; }
+  .summary td { font-size: 10pt; }
+  .note { color: #475569; font-size: 7.5pt; margin-top: 4mm; }
+  .warn { color: #b91c1c; font-size: 8pt; }
+  .drawing { page-break-before: always; }
+  .drawing img { width: 100%; max-height: 118mm; object-fit: contain; border: 0.2mm solid #cbd5e1; margin-bottom: 4mm; }
+  tr { page-break-inside: avoid; }
+</style>
+</head>
+<body>
+<h1>Спецификация: {{ project.name }}</h1>
+<div class="meta">
+  {{ project.get_object_type_display }} · {{ project.get_grid_display }} · вводной автомат {{ project.main_breaker_a }} А ·
+  заземление {{ project.earthing }} · дата {{ today|date:"d.m.Y" }} · UAH, цены с НДС, только материалы
+</div>
+
+{% for section in bom.sections %}
+<h2>{{ section.title }}</h2>
+{% for block in section.blocks %}
+<h3>{{ block.title }}{% if block.estimated %} <span class="est">(по схеме, щит ещё не собран)</span>{% endif %}</h3>
+<table>
+  <thead><tr><th>№</th><th>Бренд</th><th>Артикул</th><th>Наименование</th><th class="r">Ед.</th><th class="r">Кол-во</th><th class="r">Цена, ₴</th><th class="r">Сумма, ₴</th></tr></thead>
+  <tbody>
+  {% for ln in block.lines %}
+  <tr><td>{{ forloop.counter }}</td><td>{{ ln.brand }}</td><td>{{ ln.sku }}{% if ln.needs_verification %} *{% endif %}</td><td>{{ ln.name }}</td><td class="r">{{ ln.unit }}</td><td class="r">{{ ln.qty }}</td><td class="r">{{ ln.unit_price|uah }}</td><td class="r">{{ ln.total|uah }}</td></tr>
+  {% empty %}
+  <tr><td colspan="8">Нет изделий</td></tr>
+  {% endfor %}
+  <tr class="tot"><td colspan="7">Итого: {{ block.title }}</td><td class="r">{{ block.total|uah }}</td></tr>
+  </tbody>
+</table>
+{% endfor %}
+{% endfor %}
+
+<table class="summary">
+  {% for section in bom.sections %}<tr><td>{{ section.title }}</td><td class="r">{{ section.total|uah }} ₴</td></tr>{% endfor %}
+  <tr class="tot"><td>Всего</td><td class="r">{{ bom.total|uah }} ₴</td></tr>
+</table>
+
+<p class="note">Цены ориентировочные. {% if bom.unverified %}* — цена требует уточнения ({{ bom.unverified }} поз.). {% endif %}Расчёт не заменяет проект сертифицированного специалиста.</p>
+{% for m in bom.missing %}<p class="warn">Нет в каталоге: {{ m }}</p>{% endfor %}
+
+{% for d in drawings %}
+<div class="drawing">
+  <h2>{{ d.title }}</h2>
+  {% for img in d.images %}
+  <h3>{{ img.caption }}</h3>
+  <img src="{{ img.src }}" alt="{{ img.caption }}">
+  {% endfor %}
+</div>
+{% endfor %}
+</body>
+</html>

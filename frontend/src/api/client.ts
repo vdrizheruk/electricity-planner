@@ -59,7 +59,31 @@ async function request<T>(method: Method, path: string, body?: unknown): Promise
   return data as T;
 }
 
+/** File download (XLSX/PDF): returns the blob, throws ApiError on a failure. */
+async function download(method: 'GET' | 'POST', path: string, body?: unknown): Promise<Blob> {
+  const headers: Record<string, string> = {};
+  const init: RequestInit = { method, headers, credentials: 'same-origin' };
+  if (method === 'POST') {
+    headers['X-CSRFToken'] = await csrfToken();
+    headers['Content-Type'] = 'application/json';
+    init.body = JSON.stringify(body ?? {});
+  }
+  const res = await fetch(`/api/v1${path}`, init);
+  if (!res.ok) {
+    const text = await res.text();
+    let data: unknown = null;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      data = null;
+    }
+    throw new ApiError(res.status, data);
+  }
+  return res.blob();
+}
+
 export const api = {
+  download,
   get: <T>(path: string) => request<T>('GET', path),
   post: <T>(path: string, body?: unknown) => request<T>('POST', path, body ?? {}),
   put: <T>(path: string, body: unknown) => request<T>('PUT', path, body),
