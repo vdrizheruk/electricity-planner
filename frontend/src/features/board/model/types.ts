@@ -36,6 +36,8 @@ export interface PanelModel {
   /** Mounting panel size, mm (null: enclosure has none). */
   area: { width: number | null; height: number | null };
   devices: Device[];
+  /** Manual node positions of the single-line diagram, keyed by device id / `feeder` / `bus`. */
+  diagramPositions: Record<string, { x: number; y: number }>;
 }
 
 export type IssueCode =

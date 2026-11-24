@@ -1,9 +1,10 @@
 import { MM_PX, MODULE_PX, RAIL_HEIGHT_PX } from './geometry';
 import { colorOf, shortName } from './match';
+import { buildWires, WIRE_GAP, wiresToSvg } from './wires';
 import type { Group, PanelModel, Product } from './types';
 
 const PAD = 24;
-const ROW_GAP = 16;
+const ROW_GAP = WIRE_GAP;
 
 function esc(s: string): string {
   return s
@@ -29,7 +30,7 @@ export function boardToSvg(
   const railW = Math.max(...rails.map((r) => r.capacity), 0) * MODULE_PX;
   const mountW = (panel.area.width ?? 0) * MM_PX;
   const mountH = (panel.area.height ?? 0) * MM_PX;
-  const railsH = rails.length * (RAIL_HEIGHT_PX + ROW_GAP);
+  const railsH = (rails.length + 1) * (RAIL_HEIGHT_PX + ROW_GAP);
   const width = PAD * 2 + railW + (mountW > 0 ? mountW + PAD : 0);
   const height = PAD * 2 + 28 + Math.max(railsH, mountH);
   const out: string[] = [];
@@ -40,7 +41,7 @@ export function boardToSvg(
   );
   const top = PAD + 12;
   rails.forEach((r, i) => {
-    const y = top + i * (RAIL_HEIGHT_PX + ROW_GAP);
+    const y = top + (i + 1) * ROW_GAP + i * RAIL_HEIGHT_PX;
     out.push(
       `<rect x="${PAD}" y="${y}" width="${r.capacity * MODULE_PX}" height="${RAIL_HEIGHT_PX}" fill="#f8fafc" stroke="#94a3b8"/>`,
       `<rect x="${PAD}" y="${y + RAIL_HEIGHT_PX / 2 - 4}" width="${r.capacity * MODULE_PX}" height="8" fill="#cbd5e1"/>`,
@@ -67,6 +68,8 @@ export function boardToSvg(
       out.push('</g>');
     }
   });
+  const ws = buildWires(panel, products, groups);
+  out.push(`<g transform="translate(${PAD} ${top})">${wiresToSvg(ws)}</g>`);
   if (mountW > 0) {
     const ox = PAD * 2 + railW;
     out.push(

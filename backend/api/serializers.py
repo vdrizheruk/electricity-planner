@@ -107,10 +107,25 @@ class PanelSerializer(serializers.ModelSerializer[Panel]):
             "enclosure",
             "ip",
             "mounting",
+            "diagram_positions",
             "rails",
             "mounting_area_mm",
         ]
         read_only_fields = ["id", "project", "rails", "mounting_area_mm"]
+
+    def validate_diagram_positions(self, value: Any) -> dict[str, dict[str, float]]:
+        if not isinstance(value, dict) or len(value) > 1000:
+            raise serializers.ValidationError("Ожидается объект не более чем с 1000 узлами")
+        for key, pos in value.items():
+            if not isinstance(key, str) or not 0 < len(key) <= 40:
+                raise serializers.ValidationError("Неверный идентификатор узла")
+            if not isinstance(pos, dict) or set(pos) != {"x", "y"}:
+                raise serializers.ValidationError(f"{key}: ожидается {{x, y}}")
+            for axis in ("x", "y"):
+                v = pos[axis]
+                if isinstance(v, bool) or not isinstance(v, int | float) or abs(v) > 100_000:
+                    raise serializers.ValidationError(f"{key}.{axis}: неверное число")
+        return value  # type: ignore[no-any-return]
 
     def get_mounting_area_mm(self, obj: Panel) -> dict[str, int | None]:
         _, _, area = enclosure_geometry(obj)

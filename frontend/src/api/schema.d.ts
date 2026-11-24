@@ -1114,6 +1114,7 @@ export interface components {
             enclosure?: number | null;
             ip?: number;
             mounting?: components["schemas"]["MountingEnum"];
+            diagram_positions?: unknown;
             readonly rails: components["schemas"]["DinRail"][];
             readonly mounting_area_mm: {
                 [key: string]: number | null;
@@ -1136,6 +1137,7 @@ export interface components {
             enclosure?: number | null;
             ip?: number;
             mounting?: components["schemas"]["MountingEnum"];
+            diagram_positions?: unknown;
         };
         /** @description Autosave payload: full desired state of the panel's placements. */
         PatchedBulkPlacementsRequest: {
@@ -1167,6 +1169,7 @@ export interface components {
             enclosure?: number | null;
             ip?: number;
             mounting?: components["schemas"]["MountingEnum"];
+            diagram_positions?: unknown;
         };
         PatchedPlacementRequest: {
             rail?: number | null;

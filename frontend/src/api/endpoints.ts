@@ -35,8 +35,14 @@ export const panels = {
   list: (projectId: number) => getAll<Panel>(`/projects/${projectId}/panels/`),
   create: (projectId: number, data: { name: string; kind?: string; enclosure?: number | null }) =>
     api.post<Panel>(`/projects/${projectId}/panels/`, data),
-  update: (id: number, data: { name?: string; enclosure?: number | null }) =>
-    api.patch<Panel>(`/panels/${id}/`, data),
+  update: (
+    id: number,
+    data: {
+      name?: string;
+      enclosure?: number | null;
+      diagram_positions?: Record<string, { x: number; y: number }>;
+    },
+  ) => api.patch<Panel>(`/panels/${id}/`, data),
   remove: (id: number) => api.del(`/panels/${id}/`),
   placements: (id: number) => getAll<PlacementDto>(`/panels/${id}/placements/`),
   saveBulk: (id: number, placements: BulkItem[]) =>

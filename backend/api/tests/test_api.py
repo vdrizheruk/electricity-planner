@@ -155,6 +155,39 @@ def test_change_enclosure_when_free(auth, panel):
     assert r.status_code == 200 and len(r.json()["rails"]) == 4
 
 
+def test_diagram_positions_roundtrip(auth, panel):
+    pos = {"s1": {"x": 10, "y": -20.5}, "bus": {"x": 0, "y": 96}}
+    r = auth.patch(f"{B}/panels/{panel.id}/", {"diagram_positions": pos}, format="json")
+    assert r.status_code == 200 and r.json()["diagram_positions"] == pos
+    assert auth.get(f"{B}/panels/{panel.id}/").json()["diagram_positions"] == pos
+    r = auth.patch(f"{B}/panels/{panel.id}/", {"diagram_positions": {}}, format="json")
+    assert r.json()["diagram_positions"] == {}
+
+
+def test_diagram_positions_validation(auth, panel):
+    bad = [
+        [],
+        {"s1": [1, 2]},
+        {"s1": {"x": 1}},
+        {"s1": {"x": "a", "y": 1}},
+        {"s1": {"x": True, "y": 1}},
+        {"s1": {"x": 1e9, "y": 1}},
+        {"s1": {"x": 1, "y": 1, "z": 2}},
+        {"k" * 41: {"x": 1, "y": 1}},
+        {f"s{i}": {"x": 0, "y": 0} for i in range(1001)},
+    ]
+    for value in bad:
+        r = auth.patch(f"{B}/panels/{panel.id}/", {"diagram_positions": value}, format="json")
+        assert r.status_code == 400, value
+
+
+def test_diagram_positions_of_foreign_panel_hidden(other_client, panel):
+    r = other_client.patch(
+        f"{B}/panels/{panel.id}/", {"diagram_positions": {"a": {"x": 1, "y": 1}}}, format="json"
+    )
+    assert r.status_code == 404
+
+
 def test_panel_links_api(auth, project, panel):
     p2 = Panel.objects.create(project=project, name="Этаж")
     url = f"{B}/projects/{project.pk}/links/"

@@ -84,6 +84,8 @@ class Panel(models.Model):
     )
     ip = models.PositiveSmallIntegerField("IP", default=40)
     mounting = models.CharField(max_length=8, choices=Mounting.choices, default=Mounting.FLUSH)
+    # Manual node positions of the single-line diagram: {"s12": {"x": 10, "y": 20}, "bus": {...}}.
+    diagram_positions = models.JSONField(default=dict, blank=True)
 
     class Meta:
         ordering = ["project_id", "id"]
