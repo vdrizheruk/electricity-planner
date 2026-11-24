@@ -5,3 +5,4 @@ psycopg[binary]>=3.2,<4
 django-allauth>=65,<66
 django-environ>=0.12
 gunicorn>=23
+django-filter>=24.3
