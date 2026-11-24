@@ -1,0 +1,3125 @@
+openapi: 3.0.3
+info:
+  title: Electricity Planner API
+  version: 0.1.0
+paths:
+  /api/v1/auth/csrf/:
+    get:
+      operationId: auth_csrf_retrieve
+      description: Sets the csrftoken cookie and returns the token for the SPA.
+      tags:
+      - auth
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CsrfToken'
+          description: ''
+  /api/v1/auth/login/:
+    post:
+      operationId: auth_login_create
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CredentialsRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CredentialsRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CredentialsRequest'
+        required: true
+      security:
+      - csrfOnly: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Credentials'
+          description: ''
+  /api/v1/auth/logout/:
+    post:
+      operationId: auth_logout_create
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/auth/me/:
+    get:
+      operationId: auth_me_retrieve
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    patch:
+      operationId: auth_me_partial_update
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/v1/auth/register/:
+    post:
+      operationId: auth_register_create
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CredentialsRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CredentialsRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CredentialsRequest'
+        required: true
+      security:
+      - csrfOnly: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Credentials'
+          description: ''
+  /api/v1/catalog/brands/:
+    get:
+      operationId: catalog_brands_list
+      tags:
+      - catalog
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Brand'
+          description: ''
+  /api/v1/catalog/brands/{id}/:
+    get:
+      operationId: catalog_brands_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this brand.
+        required: true
+      tags:
+      - catalog
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Brand'
+          description: ''
+  /api/v1/catalog/categories/:
+    get:
+      operationId: catalog_categories_list
+      tags:
+      - catalog
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+          description: ''
+  /api/v1/catalog/categories/{id}/:
+    get:
+      operationId: catalog_categories_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this category.
+        required: true
+      tags:
+      - catalog
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+          description: ''
+  /api/v1/catalog/export/:
+    get:
+      operationId: catalog_export_retrieve
+      tags:
+      - catalog
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/v1/catalog/import/:
+    post:
+      operationId: catalog_import_create
+      tags:
+      - catalog
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+          description: ''
+  /api/v1/catalog/products/:
+    get:
+      operationId: catalog_products_list
+      parameters:
+      - in: query
+        name: brand
+        schema:
+          type: string
+      - in: query
+        name: category
+        schema:
+          type: string
+      - in: query
+        name: curve
+        schema:
+          type: string
+          title: Характеристика
+          enum:
+          - B
+          - C
+          - D
+        description: |-
+          * `B` - B
+          * `C` - C
+          * `D` - D
+      - in: query
+        name: din_mountable
+        schema:
+          type: boolean
+      - in: query
+        name: leakage_ma
+        schema:
+          type: integer
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: poles
+        schema:
+          type: integer
+      - in: query
+        name: price_max
+        schema:
+          type: number
+      - in: query
+        name: q
+        schema:
+          type: string
+      - in: query
+        name: rated_a
+        schema:
+          type: number
+      - in: query
+        name: rated_a_max
+        schema:
+          type: number
+      - in: query
+        name: rated_a_min
+        schema:
+          type: number
+      - in: query
+        name: rcd_type
+        schema:
+          type: string
+          title: Тип УЗО
+          enum:
+          - A
+          - AC
+          - B
+          - F
+        description: |-
+          * `AC` - AC
+          * `A` - A
+          * `F` - F
+          * `B` - B
+      - in: query
+        name: tier
+        schema:
+          type: string
+          enum:
+          - eco
+          - mid
+          - premium
+        description: |-
+          * `eco` - Эконом
+          * `mid` - Средний
+          * `premium` - Премиум
+      tags:
+      - catalog
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProductList'
+          description: ''
+  /api/v1/catalog/products/{id}/:
+    get:
+      operationId: catalog_products_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this product.
+        required: true
+      tags:
+      - catalog
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+          description: ''
+  /api/v1/catalog/products/{id}/analogs/:
+    get:
+      operationId: catalog_products_analogs_list
+      description: Functional analogs in other brands, cheapest first; optional ``tier``
+        filter.
+      parameters:
+      - in: query
+        name: brand
+        schema:
+          type: string
+      - in: query
+        name: category
+        schema:
+          type: string
+      - in: query
+        name: curve
+        schema:
+          type: string
+          title: Характеристика
+          enum:
+          - B
+          - C
+          - D
+        description: |-
+          * `B` - B
+          * `C` - C
+          * `D` - D
+      - in: query
+        name: din_mountable
+        schema:
+          type: boolean
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this product.
+        required: true
+      - in: query
+        name: leakage_ma
+        schema:
+          type: integer
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: poles
+        schema:
+          type: integer
+      - in: query
+        name: price_max
+        schema:
+          type: number
+      - in: query
+        name: q
+        schema:
+          type: string
+      - in: query
+        name: rated_a
+        schema:
+          type: number
+      - in: query
+        name: rated_a_max
+        schema:
+          type: number
+      - in: query
+        name: rated_a_min
+        schema:
+          type: number
+      - in: query
+        name: rcd_type
+        schema:
+          type: string
+          title: Тип УЗО
+          enum:
+          - A
+          - AC
+          - B
+          - F
+        description: |-
+          * `AC` - AC
+          * `A` - A
+          * `F` - F
+          * `B` - B
+      - in: query
+        name: tier
+        schema:
+          type: string
+        description: eco | mid | premium
+      tags:
+      - catalog
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProductList'
+          description: ''
+  /api/v1/groups/{id}/:
+    get:
+      operationId: groups_retrieve
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - groups
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsumerGroup'
+          description: ''
+    put:
+      operationId: groups_update
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - groups
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConsumerGroupRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ConsumerGroupRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ConsumerGroupRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsumerGroup'
+          description: ''
+    patch:
+      operationId: groups_partial_update
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - groups
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedConsumerGroupRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedConsumerGroupRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedConsumerGroupRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsumerGroup'
+          description: ''
+    delete:
+      operationId: groups_destroy
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - groups
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/links/{id}/:
+    get:
+      operationId: links_retrieve
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - links
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PanelLink'
+          description: ''
+    delete:
+      operationId: links_destroy
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - links
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/panels/{panel_pk}/placements/:
+    get:
+      operationId: panels_placements_list
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: path
+        name: panel_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - panels
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPlacementList'
+          description: ''
+    post:
+      operationId: panels_placements_create
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - in: path
+        name: panel_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - panels
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlacementRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PlacementRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PlacementRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Placement'
+          description: ''
+  /api/v1/panels/{panel_pk}/placements/bulk/:
+    put:
+      operationId: panels_placements_bulk_update
+      description: |-
+        Autosave: replace the panel's placements with the given full state, atomically.
+
+        Items with ``id`` are updated, items without are created, existing placements that
+        are absent from the payload are deleted. The whole result is validated first;
+        on any issue nothing is changed.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: path
+        name: panel_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - panels
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkPlacementsRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BulkPlacementsRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BulkPlacementsRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPlacementList'
+          description: ''
+    patch:
+      operationId: panels_placements_bulk_partial_update
+      description: |-
+        Autosave: replace the panel's placements with the given full state, atomically.
+
+        Items with ``id`` are updated, items without are created, existing placements that
+        are absent from the payload are deleted. The whole result is validated first;
+        on any issue nothing is changed.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: path
+        name: panel_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - panels
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedBulkPlacementsRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedBulkPlacementsRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedBulkPlacementsRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPlacementList'
+          description: ''
+  /api/v1/panels/{panel_pk}/versions/:
+    get:
+      operationId: panels_versions_list
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: path
+        name: panel_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - panels
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLayoutVersionList'
+          description: ''
+    post:
+      operationId: panels_versions_create
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - in: path
+        name: panel_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - panels
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LayoutVersionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LayoutVersionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LayoutVersionRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LayoutVersion'
+          description: ''
+  /api/v1/panels/{id}/:
+    get:
+      operationId: panels_retrieve
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - panels
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Panel'
+          description: ''
+    put:
+      operationId: panels_update
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - panels
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PanelRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PanelRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PanelRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Panel'
+          description: ''
+    patch:
+      operationId: panels_partial_update
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - panels
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPanelRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPanelRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPanelRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Panel'
+          description: ''
+    delete:
+      operationId: panels_destroy
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - panels
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/panels/{id}/autolayout/:
+    post:
+      operationId: panels_autolayout_create
+      description: |-
+        Auto-layout: input devices, relay/SPD, RCDs with their breakers; picks an enclosure.
+
+        Replaces all DIN-rail placements of the panel (mounting-panel items are kept).
+        Unassigned groups of a main panel are assigned to it.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - panels
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AutolayoutOptionsRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AutolayoutOptionsRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AutolayoutOptionsRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AutolayoutResult'
+          description: ''
+  /api/v1/panels/{id}/unplaced/:
+    get:
+      operationId: panels_unplaced_list
+      description: Breakers of this panel's groups that are not yet placed on a rail/panel.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - panels
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedConsumerGroupList'
+          description: ''
+  /api/v1/panels/{id}/validate/:
+    get:
+      operationId: panels_validate_list
+      description: 'Server-side layout check: bounds, collisions, compatibility.'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - panels
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedIssueList'
+          description: ''
+  /api/v1/placements/{id}/:
+    get:
+      operationId: placements_retrieve
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - placements
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Placement'
+          description: ''
+    put:
+      operationId: placements_update
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - placements
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlacementRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PlacementRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PlacementRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Placement'
+          description: ''
+    patch:
+      operationId: placements_partial_update
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - placements
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPlacementRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPlacementRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPlacementRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Placement'
+          description: ''
+    delete:
+      operationId: placements_destroy
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - placements
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/projects/:
+    get:
+      operationId: projects_list
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - projects
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProjectList'
+          description: ''
+    post:
+      operationId: projects_create
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProjectRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProjectRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+          description: ''
+  /api/v1/projects/{id}/:
+    get:
+      operationId: projects_retrieve
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+          description: ''
+    put:
+      operationId: projects_update
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProjectRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProjectRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+          description: ''
+    patch:
+      operationId: projects_partial_update
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedProjectRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedProjectRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedProjectRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+          description: ''
+    delete:
+      operationId: projects_destroy
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/projects/{id}/calc/:
+    get:
+      operationId: projects_calc_retrieve
+      description: 'Calculate (without saving): demand, phases, RCDs, per-group selection,
+        findings.'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Calculation'
+          description: ''
+  /api/v1/projects/{project_pk}/groups/:
+    get:
+      operationId: projects_groups_list
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: path
+        name: project_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedConsumerGroupList'
+          description: ''
+    post:
+      operationId: projects_groups_create
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - in: path
+        name: project_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConsumerGroupRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ConsumerGroupRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ConsumerGroupRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsumerGroup'
+          description: ''
+  /api/v1/projects/{project_pk}/groups/autoselect/:
+    post:
+      operationId: projects_groups_autoselect_create
+      description: Auto-select breaker, cable, RCD and phase for all groups and store
+        the results.
+      parameters:
+      - in: path
+        name: project_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Calculation'
+          description: ''
+  /api/v1/projects/{project_pk}/links/:
+    get:
+      operationId: projects_links_list
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: path
+        name: project_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPanelLinkList'
+          description: ''
+    post:
+      operationId: projects_links_create
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - in: path
+        name: project_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PanelLinkRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PanelLinkRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PanelLinkRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PanelLink'
+          description: ''
+  /api/v1/projects/{project_pk}/panels/:
+    get:
+      operationId: projects_panels_list
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: path
+        name: project_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPanelList'
+          description: ''
+    post:
+      operationId: projects_panels_create
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - in: path
+        name: project_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PanelRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PanelRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PanelRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Panel'
+          description: ''
+  /api/v1/versions/{id}/:
+    get:
+      operationId: versions_retrieve
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - versions
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LayoutVersion'
+          description: ''
+  /api/v1/versions/{id}/restore/:
+    post:
+      operationId: versions_restore_create
+      description: |-
+        Object-level access: users only ever see their own projects and children.
+
+        Foreign objects answer 404, not 403, so ids of other users' data don't leak.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - versions
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPlacementList'
+          description: ''
+components:
+  schemas:
+    AutolayoutOptionsRequest:
+      type: object
+      properties:
+        voltage_relay:
+          type: boolean
+          default: true
+        spd:
+          allOf:
+          - $ref: '#/components/schemas/SpdEnum'
+          default: '2'
+        fire_rcd:
+          type: boolean
+          default: false
+        reserve_pct:
+          type: integer
+          maximum: 100
+          minimum: 0
+          default: 20
+        pick_enclosure:
+          type: boolean
+          default: true
+    AutolayoutResult:
+      type: object
+      properties:
+        placements:
+          type: array
+          items:
+            $ref: '#/components/schemas/Placement'
+        required_modules:
+          type: integer
+        capacity_modules:
+          type: integer
+        enclosure:
+          type: integer
+          nullable: true
+        enclosure_changed:
+          type: boolean
+        findings:
+          type: array
+          items:
+            $ref: '#/components/schemas/Finding'
+      required:
+      - capacity_modules
+      - enclosure
+      - enclosure_changed
+      - findings
+      - placements
+      - required_modules
+    Brand:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 80
+        slug:
+          type: string
+          maxLength: 80
+          pattern: ^[-a-zA-Z0-9_]+$
+        tier:
+          $ref: '#/components/schemas/TierEnum'
+      required:
+      - id
+      - name
+      - slug
+    BulkPlacementItemRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+        rail:
+          type: integer
+          nullable: true
+        product:
+          type: integer
+        group:
+          type: integer
+          nullable: true
+        start_module:
+          type: integer
+          minimum: 0
+          nullable: true
+        width_modules:
+          type: integer
+          minimum: 0
+        x_mm:
+          type: integer
+          minimum: 0
+          nullable: true
+        y_mm:
+          type: integer
+          minimum: 0
+          nullable: true
+        w_mm:
+          type: integer
+          minimum: 1
+          nullable: true
+        h_mm:
+          type: integer
+          minimum: 1
+          nullable: true
+        label:
+          type: string
+          maxLength: 64
+      required:
+      - product
+    BulkPlacementsRequest:
+      type: object
+      description: 'Autosave payload: full desired state of the panel''s placements.'
+      properties:
+        placements:
+          type: array
+          items:
+            $ref: '#/components/schemas/BulkPlacementItemRequest'
+      required:
+      - placements
+    Calculation:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/GroupResult'
+        rcds:
+          type: array
+          items:
+            $ref: '#/components/schemas/Rcd'
+        demand:
+          $ref: '#/components/schemas/Demand'
+        phases:
+          $ref: '#/components/schemas/Phases'
+        findings:
+          type: array
+          items:
+            $ref: '#/components/schemas/Finding'
+      required:
+      - demand
+      - findings
+      - groups
+      - ok
+      - phases
+      - rcds
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        code:
+          $ref: '#/components/schemas/CodeEnum'
+        name_ru:
+          type: string
+          maxLength: 120
+        name_uk:
+          type: string
+          maxLength: 120
+      required:
+      - code
+      - id
+      - name_ru
+      - name_uk
+    CodeEnum:
+      enum:
+      - mcb
+      - rcd
+      - rcbo
+      - spd
+      - main_switch
+      - voltage_relay
+      - phase_relay
+      - meter
+      - contactor
+      - timer
+      - ats
+      - busbar
+      - din_rail
+      - blank
+      - label
+      - terminal
+      - enclosure
+      - mount_panel
+      - inverter
+      - battery
+      - pv_module
+      - dc_fuse
+      - dc_isolator
+      - dc_spd
+      - dc_breaker
+      - pv_connector
+      - cable
+      - generator
+      type: string
+      description: |-
+        * `mcb` - Автоматический выключатель
+        * `rcd` - УЗО
+        * `rcbo` - Дифавтомат
+        * `spd` - УЗИП (AC)
+        * `main_switch` - Вводной выключатель-разъединитель
+        * `voltage_relay` - Реле напряжения
+        * `phase_relay` - Реле контроля фаз
+        * `meter` - Счётчик
+        * `contactor` - Контактор
+        * `timer` - Таймер
+        * `ats` - АВР / переключатель
+        * `busbar` - Шина N/PE / гребёнка
+        * `din_rail` - DIN-рейка
+        * `blank` - Заглушка
+        * `label` - Маркировка
+        * `terminal` - Клеммник
+        * `enclosure` - Корпус щита
+        * `mount_panel` - Монтажная панель
+        * `inverter` - Инвертор / ИБП
+        * `battery` - АКБ
+        * `pv_module` - Солнечная панель
+        * `dc_fuse` - DC-предохранитель (gPV)
+        * `dc_isolator` - DC-разъединитель
+        * `dc_spd` - DC-УЗИП
+        * `dc_breaker` - DC-автомат
+        * `pv_connector` - Разъём MC4
+        * `cable` - Кабель
+        * `generator` - Генератор
+    ConsumerGroup:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        panel:
+          type: integer
+          nullable: true
+        name:
+          type: string
+          maxLength: 120
+        room:
+          type: string
+          maxLength: 80
+        type:
+          $ref: '#/components/schemas/TypeEnum'
+        power_w:
+          type: integer
+          maximum: 2147483647
+          minimum: 1
+          title: Мощность, Вт
+        cos_phi:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,1}(?:\.\d{0,2})?$
+        phase:
+          $ref: '#/components/schemas/PhaseEnum'
+        length_m:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,5}(?:\.\d{0,1})?$
+          title: Длина линии, м
+        backed_up:
+          type: boolean
+          title: Резервируемая
+        wet_zone:
+          type: boolean
+          title: Влажная зона
+        assigned_phase:
+          type: string
+          readOnly: true
+        breaker_a:
+          type: integer
+          readOnly: true
+          nullable: true
+        curve:
+          type: string
+          readOnly: true
+        cable_mm2:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,1})?$
+          readOnly: true
+          nullable: true
+        rcd_ma:
+          type: integer
+          readOnly: true
+          nullable: true
+        voltage_drop_pct:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,2}(?:\.\d{0,2})?$
+          readOnly: true
+          nullable: true
+      required:
+      - assigned_phase
+      - breaker_a
+      - cable_mm2
+      - curve
+      - id
+      - name
+      - power_w
+      - rcd_ma
+      - voltage_drop_pct
+    ConsumerGroupRequest:
+      type: object
+      properties:
+        panel:
+          type: integer
+          nullable: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        room:
+          type: string
+          maxLength: 80
+        type:
+          $ref: '#/components/schemas/TypeEnum'
+        power_w:
+          type: integer
+          maximum: 2147483647
+          minimum: 1
+          title: Мощность, Вт
+        cos_phi:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,1}(?:\.\d{0,2})?$
+        phase:
+          $ref: '#/components/schemas/PhaseEnum'
+        length_m:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,5}(?:\.\d{0,1})?$
+          title: Длина линии, м
+        backed_up:
+          type: boolean
+          title: Резервируемая
+        wet_zone:
+          type: boolean
+          title: Влажная зона
+      required:
+      - name
+      - power_w
+    Credentials:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+      required:
+      - email
+    CredentialsRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - email
+      - password
+    CsrfToken:
+      type: object
+      properties:
+        csrfToken:
+          type: string
+      required:
+      - csrfToken
+    CurveEnum:
+      enum:
+      - B
+      - C
+      - D
+      type: string
+      description: |-
+        * `B` - B
+        * `C` - C
+        * `D` - D
+    Demand:
+      type: object
+      properties:
+        installed_w:
+          type: number
+          format: double
+        demand_w:
+          type: number
+          format: double
+        demand_va:
+          type: number
+          format: double
+        diversity:
+          type: number
+          format: double
+        design_current_a:
+          type: number
+          format: double
+        main_breaker_a:
+          type: integer
+        main_ok:
+          type: boolean
+      required:
+      - demand_va
+      - demand_w
+      - design_current_a
+      - diversity
+      - installed_w
+      - main_breaker_a
+      - main_ok
+    DinRail:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        row_index:
+          type: integer
+          readOnly: true
+        capacity_modules:
+          type: integer
+          readOnly: true
+          title: Модулей на рейке
+      required:
+      - capacity_modules
+      - id
+      - row_index
+    EarthingEnum:
+      enum:
+      - TN-C-S
+      - TN-S
+      - TT
+      type: string
+      description: |-
+        * `TN-C-S` - TN-C-S
+        * `TN-S` - TN-S
+        * `TT` - TT
+    Finding:
+      type: object
+      properties:
+        level:
+          $ref: '#/components/schemas/LevelEnum'
+        code:
+          type: string
+        message:
+          type: string
+        group_id:
+          type: integer
+          nullable: true
+      required:
+      - code
+      - group_id
+      - level
+      - message
+    GridEnum:
+      enum:
+      - 1ph
+      - 3ph
+      type: string
+      description: |-
+        * `1ph` - 1ф 230 В
+        * `3ph` - 3ф 400 В
+    GroupResult:
+      type: object
+      properties:
+        group_id:
+          type: integer
+        phase:
+          type: string
+        ib_a:
+          type: number
+          format: double
+        breaker_a:
+          type: integer
+        curve:
+          type: string
+        cable_mm2:
+          type: number
+          format: double
+        voltage_drop_pct:
+          type: number
+          format: double
+        protection:
+          type: string
+        rcd_ma:
+          type: integer
+          nullable: true
+        rcd_type:
+          type: string
+        demand_factor:
+          type: number
+          format: double
+        demand_va:
+          type: number
+          format: double
+      required:
+      - breaker_a
+      - cable_mm2
+      - curve
+      - demand_factor
+      - demand_va
+      - group_id
+      - ib_a
+      - phase
+      - protection
+      - rcd_ma
+      - rcd_type
+      - voltage_drop_pct
+    Issue:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        key:
+          type: string
+        other_key:
+          type: string
+          nullable: true
+      required:
+      - code
+      - key
+      - message
+      - other_key
+    KindEnum:
+      enum:
+      - main
+      - floor
+      - backup
+      - dc
+      type: string
+      description: |-
+        * `main` - ГРЩ
+        * `floor` - Этажный
+        * `backup` - Щит резерва / АВР
+        * `dc` - DC-бокс
+    LanguageEnum:
+      enum:
+      - ru
+      - uk
+      type: string
+      description: |-
+        * `ru` - Русский
+        * `uk` - Українська
+    LayoutVersion:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        number:
+          type: integer
+          readOnly: true
+        note:
+          type: string
+          maxLength: 200
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - number
+    LayoutVersionRequest:
+      type: object
+      properties:
+        note:
+          type: string
+          maxLength: 200
+    LevelEnum:
+      enum:
+      - error
+      - warning
+      - info
+      type: string
+      description: |-
+        * `error` - error
+        * `warning` - warning
+        * `info` - info
+    MountingEnum:
+      enum:
+      - flush
+      - surface
+      type: string
+      description: |-
+        * `flush` - Встраиваемый
+        * `surface` - Навесной
+    ObjectTypeEnum:
+      enum:
+      - flat
+      - house
+      type: string
+      description: |-
+        * `flat` - Квартира
+        * `house` - Дом
+    PaginatedConsumerGroupList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConsumerGroup'
+    PaginatedIssueList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Issue'
+    PaginatedLayoutVersionList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/LayoutVersion'
+    PaginatedPanelLinkList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PanelLink'
+    PaginatedPanelList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Panel'
+    PaginatedPlacementList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Placement'
+    PaginatedProductList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+    PaginatedProjectList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Project'
+    Panel:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        project:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        kind:
+          $ref: '#/components/schemas/KindEnum'
+        enclosure:
+          type: integer
+          nullable: true
+        ip:
+          type: integer
+          maximum: 32767
+          minimum: 0
+        mounting:
+          $ref: '#/components/schemas/MountingEnum'
+        rails:
+          type: array
+          items:
+            $ref: '#/components/schemas/DinRail'
+          readOnly: true
+        mounting_area_mm:
+          type: object
+          additionalProperties:
+            type: integer
+            nullable: true
+          readOnly: true
+      required:
+      - id
+      - mounting_area_mm
+      - name
+      - project
+      - rails
+    PanelLink:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        source:
+          type: integer
+        target:
+          type: integer
+        feeder_breaker_a:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          nullable: true
+      required:
+      - id
+      - source
+      - target
+    PanelLinkRequest:
+      type: object
+      properties:
+        source:
+          type: integer
+        target:
+          type: integer
+        feeder_breaker_a:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          nullable: true
+      required:
+      - source
+      - target
+    PanelRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        kind:
+          $ref: '#/components/schemas/KindEnum'
+        enclosure:
+          type: integer
+          nullable: true
+        ip:
+          type: integer
+          maximum: 32767
+          minimum: 0
+        mounting:
+          $ref: '#/components/schemas/MountingEnum'
+      required:
+      - name
+    PatchedBulkPlacementsRequest:
+      type: object
+      description: 'Autosave payload: full desired state of the panel''s placements.'
+      properties:
+        placements:
+          type: array
+          items:
+            $ref: '#/components/schemas/BulkPlacementItemRequest'
+    PatchedConsumerGroupRequest:
+      type: object
+      properties:
+        panel:
+          type: integer
+          nullable: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        room:
+          type: string
+          maxLength: 80
+        type:
+          $ref: '#/components/schemas/TypeEnum'
+        power_w:
+          type: integer
+          maximum: 2147483647
+          minimum: 1
+          title: Мощность, Вт
+        cos_phi:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,1}(?:\.\d{0,2})?$
+        phase:
+          $ref: '#/components/schemas/PhaseEnum'
+        length_m:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,5}(?:\.\d{0,1})?$
+          title: Длина линии, м
+        backed_up:
+          type: boolean
+          title: Резервируемая
+        wet_zone:
+          type: boolean
+          title: Влажная зона
+    PatchedPanelRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        kind:
+          $ref: '#/components/schemas/KindEnum'
+        enclosure:
+          type: integer
+          nullable: true
+        ip:
+          type: integer
+          maximum: 32767
+          minimum: 0
+        mounting:
+          $ref: '#/components/schemas/MountingEnum'
+    PatchedPlacementRequest:
+      type: object
+      properties:
+        rail:
+          type: integer
+          nullable: true
+        product:
+          type: integer
+        group:
+          type: integer
+          nullable: true
+        start_module:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          nullable: true
+        width_modules:
+          type: integer
+          maximum: 32767
+          minimum: 0
+        x_mm:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        y_mm:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        w_mm:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        h_mm:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        label:
+          type: string
+          maxLength: 64
+    PatchedProjectRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 160
+        object_type:
+          $ref: '#/components/schemas/ObjectTypeEnum'
+        grid:
+          $ref: '#/components/schemas/GridEnum'
+        main_breaker_a:
+          type: integer
+          maximum: 250
+          minimum: 6
+          title: Вводной автомат, А
+        earthing:
+          $ref: '#/components/schemas/EarthingEnum'
+        price_tier:
+          $ref: '#/components/schemas/TierEnum'
+        tmin_c:
+          type: integer
+          maximum: 32767
+          minimum: -32768
+          title: Tmin для PV, °C
+    PatchedUserRequest:
+      type: object
+      properties:
+        language:
+          $ref: '#/components/schemas/LanguageEnum'
+    PhaseEnum:
+      enum:
+      - auto
+      - L1
+      - L2
+      - L3
+      - 3ph
+      type: string
+      description: |-
+        * `auto` - Авто
+        * `L1` - L1
+        * `L2` - L2
+        * `L3` - L3
+        * `3ph` - 3ф
+    Phases:
+      type: object
+      properties:
+        loads_va:
+          type: object
+          additionalProperties:
+            type: number
+            format: double
+        imbalance_pct:
+          type: number
+          format: double
+        exceeds_limit:
+          type: boolean
+        assignment:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+      - assignment
+      - exceeds_limit
+      - imbalance_pct
+      - loads_va
+    Placement:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        panel:
+          type: integer
+          readOnly: true
+        rail:
+          type: integer
+          nullable: true
+        product:
+          type: integer
+        group:
+          type: integer
+          nullable: true
+        start_module:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          nullable: true
+        width_modules:
+          type: integer
+          maximum: 32767
+          minimum: 0
+        x_mm:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        y_mm:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        w_mm:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        h_mm:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        label:
+          type: string
+          maxLength: 64
+      required:
+      - id
+      - panel
+      - product
+    PlacementRequest:
+      type: object
+      properties:
+        rail:
+          type: integer
+          nullable: true
+        product:
+          type: integer
+        group:
+          type: integer
+          nullable: true
+        start_module:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          nullable: true
+        width_modules:
+          type: integer
+          maximum: 32767
+          minimum: 0
+        x_mm:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        y_mm:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        w_mm:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        h_mm:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        label:
+          type: string
+          maxLength: 64
+      required:
+      - product
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        brand:
+          allOf:
+          - $ref: '#/components/schemas/Brand'
+          readOnly: true
+        category:
+          allOf:
+          - $ref: '#/components/schemas/Category'
+          readOnly: true
+        sku:
+          type: string
+          readOnly: true
+          title: Артикул
+        name:
+          type: string
+          readOnly: true
+        series:
+          type: string
+          readOnly: true
+        tier:
+          allOf:
+          - $ref: '#/components/schemas/TierEnum'
+          readOnly: true
+        rated_a:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,5}(?:\.\d{0,2})?$
+          readOnly: true
+          nullable: true
+          title: Номинал, А
+        poles:
+          type: integer
+          readOnly: true
+          nullable: true
+          title: Полюса
+        curve:
+          allOf:
+          - $ref: '#/components/schemas/CurveEnum'
+          readOnly: true
+          title: Характеристика
+        leakage_ma:
+          type: integer
+          readOnly: true
+          nullable: true
+          title: Ток утечки, мА
+        rcd_type:
+          allOf:
+          - $ref: '#/components/schemas/RcdTypeEnum'
+          readOnly: true
+          title: Тип УЗО
+        modules:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,1})?$
+          readOnly: true
+          title: Модулей (17.5 мм)
+        width_mm:
+          type: integer
+          readOnly: true
+          nullable: true
+        height_mm:
+          type: integer
+          readOnly: true
+          nullable: true
+        depth_mm:
+          type: integer
+          readOnly: true
+          nullable: true
+        din_mountable:
+          type: boolean
+          readOnly: true
+          title: На DIN-рейку
+          description: False — монтируется на монтажную панель (контакторные АВР,
+            клеммники и т.п.).
+        electrical:
+          readOnly: true
+          title: Электрические параметры
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+          title: Цена, UAH с НДС
+        price_date:
+          type: string
+          format: date
+          readOnly: true
+          title: Дата цены
+        needs_verification:
+          type: boolean
+          readOnly: true
+          description: Артикул/цена ориентировочные, требуют проверки.
+      required:
+      - brand
+      - category
+      - curve
+      - depth_mm
+      - din_mountable
+      - electrical
+      - height_mm
+      - id
+      - leakage_ma
+      - modules
+      - name
+      - needs_verification
+      - poles
+      - price
+      - price_date
+      - rated_a
+      - rcd_type
+      - series
+      - sku
+      - tier
+      - width_mm
+    Project:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 160
+        object_type:
+          $ref: '#/components/schemas/ObjectTypeEnum'
+        grid:
+          $ref: '#/components/schemas/GridEnum'
+        main_breaker_a:
+          type: integer
+          maximum: 250
+          minimum: 6
+          title: Вводной автомат, А
+        earthing:
+          $ref: '#/components/schemas/EarthingEnum'
+        price_tier:
+          $ref: '#/components/schemas/TierEnum'
+        tmin_c:
+          type: integer
+          maximum: 32767
+          minimum: -32768
+          title: Tmin для PV, °C
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - name
+      - updated_at
+    ProjectRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 160
+        object_type:
+          $ref: '#/components/schemas/ObjectTypeEnum'
+        grid:
+          $ref: '#/components/schemas/GridEnum'
+        main_breaker_a:
+          type: integer
+          maximum: 250
+          minimum: 6
+          title: Вводной автомат, А
+        earthing:
+          $ref: '#/components/schemas/EarthingEnum'
+        price_tier:
+          $ref: '#/components/schemas/TierEnum'
+        tmin_c:
+          type: integer
+          maximum: 32767
+          minimum: -32768
+          title: Tmin для PV, °C
+      required:
+      - name
+    Rcd:
+      type: object
+      properties:
+        id:
+          type: integer
+        phase:
+          type: string
+        poles:
+          type: integer
+        rating_a:
+          type: integer
+        leakage_ma:
+          type: integer
+        rcd_type:
+          type: string
+        group_ids:
+          type: array
+          items:
+            type: integer
+        backed_up:
+          type: boolean
+        demand_a:
+          type: number
+          format: double
+      required:
+      - backed_up
+      - demand_a
+      - group_ids
+      - id
+      - leakage_ma
+      - phase
+      - poles
+      - rating_a
+      - rcd_type
+    RcdTypeEnum:
+      enum:
+      - AC
+      - A
+      - F
+      - B
+      type: string
+      description: |-
+        * `AC` - AC
+        * `A` - A
+        * `F` - F
+        * `B` - B
+    SpdEnum:
+      enum:
+      - none
+      - '2'
+      - 1+2
+      type: string
+      description: |-
+        * `none` - none
+        * `2` - 2
+        * `1+2` - 1+2
+    TierEnum:
+      enum:
+      - eco
+      - mid
+      - premium
+      type: string
+      description: |-
+        * `eco` - Эконом
+        * `mid` - Средний
+        * `premium` - Премиум
+    TypeEnum:
+      enum:
+      - lighting
+      - sockets
+      - kitchen
+      - cooker
+      - boiler
+      - ac
+      - floor_heating
+      - washer
+      - dishwasher
+      - other
+      type: string
+      description: |-
+        * `lighting` - Освещение
+        * `sockets` - Розетки
+        * `kitchen` - Кухня
+        * `cooker` - Плита
+        * `boiler` - Бойлер
+        * `ac` - Кондиционер
+        * `floor_heating` - Тёплый пол
+        * `washer` - Стиральная машина
+        * `dishwasher` - Посудомоечная машина
+        * `other` - Прочее
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        language:
+          $ref: '#/components/schemas/LanguageEnum'
+      required:
+      - email
+      - id
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    csrfOnly:
+      type: apiKey
+      in: header
+      name: X-CSRFToken

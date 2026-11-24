@@ -9,7 +9,7 @@ from catalog.seed_data import BRANDS, CATEGORIES, OTHER_BRANDS, build_items
 
 
 class Command(BaseCommand):
-    help = "Create categories, brands and ~170 indicative catalog products (idempotent)."
+    help = "Create categories, brands and indicative catalog products (idempotent)."
 
     @transaction.atomic
     def handle(self, *args: object, **options: object) -> None:

@@ -155,12 +155,22 @@ def _breakers() -> list[Item]:
     for brand in BRANDS:
         # MCB 1P / 3P
         mcb: list[tuple[int, str, int, float]] = [
+            (1, "B", 10, 100),
             (1, "B", 16, 105),
+            (1, "B", 32, 120),
+            (1, "C", 10, 100),
             (1, "C", 16, 105),
+            (1, "C", 20, 110),
             (1, "C", 25, 115),
             (1, "C", 32, 120),
+            (2, "C", 32, 250),
+            (2, "C", 40, 280),
+            (2, "C", 63, 340),
             (3, "C", 16, 360),
             (3, "C", 32, 400),
+            (4, "C", 32, 520),
+            (4, "C", 40, 570),
+            (4, "C", 63, 700),
         ]
         for poles, curve, a, base in mcb:
             items.append(
@@ -181,8 +191,13 @@ def _breakers() -> list[Item]:
             )
         # RCD
         rcd: list[tuple[int, int, int, bool, float]] = [
+            (2, 25, 30, False, 1250),
             (2, 40, 30, False, 1350),
+            (2, 63, 30, False, 1750),
+            (4, 25, 30, False, 2200),
             (4, 40, 30, False, 2300),
+            (4, 63, 30, False, 2900),
+            (2, 63, 300, True, 2400),
             (4, 63, 300, True, 3100),
         ]
         for poles, a, ma, sel, base in rcd:
@@ -204,7 +219,7 @@ def _breakers() -> list[Item]:
                 )
             )
         # RCBO 1P+N
-        for a, base in ((16, 1650), (32, 1750)):
+        for a, base in ((10, 1600), (16, 1650), (20, 1680), (25, 1720), (32, 1750)):
             items.append(
                 Item(
                     brand,
@@ -238,7 +253,7 @@ def _breakers() -> list[Item]:
                 )
             )
         # Main switch / isolator
-        for poles, a, base in ((2, 63, 620), (4, 63, 1050), (4, 100, 1650)):
+        for poles, a, base in ((2, 63, 620), (4, 63, 1050)):
             items.append(
                 Item(
                     brand,

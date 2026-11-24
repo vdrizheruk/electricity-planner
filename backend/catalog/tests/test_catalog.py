@@ -12,7 +12,7 @@ from catalog.seed_data import build_items
 
 def test_seed_size_and_integrity(seeded):
     n = Product.objects.count()
-    assert 150 <= n <= 200
+    assert 150 <= n <= 300
     assert n == len(build_items())
     # all six required brands present with all tiers
     names = set(Brand.objects.values_list("name", flat=True))

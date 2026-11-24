@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+}
+.btn {
+  @apply inline-flex items-center gap-1 rounded border border-slate-300 bg-white px-2.5 py-1 text-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50;
+}
+.btn-primary {
+  @apply border-blue-600 bg-blue-600 text-white hover:bg-blue-700;
+}
+.input {
+  @apply rounded border border-slate-300 bg-white px-2 py-1 text-sm;
+}

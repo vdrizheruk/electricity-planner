@@ -369,3 +369,20 @@ def calculation_to_dict(calc: ProjectCalculation) -> dict[str, Any]:
     data["ok"] = calc.ok
     data["phases"]["assignment"] = {str(k): v for k, v in calc.phases.assignment.items()}
     return data
+
+
+class AutolayoutOptionsSerializer(serializers.Serializer[None]):
+    voltage_relay = serializers.BooleanField(default=True)
+    spd = serializers.ChoiceField(choices=["none", "2", "1+2"], default="2")
+    fire_rcd = serializers.BooleanField(default=False)
+    reserve_pct = serializers.IntegerField(default=20, min_value=0, max_value=100)
+    pick_enclosure = serializers.BooleanField(default=True)
+
+
+class AutolayoutResultSerializer(serializers.Serializer[None]):
+    placements = PlacementSerializer(many=True)
+    required_modules = serializers.IntegerField()
+    capacity_modules = serializers.IntegerField()
+    enclosure = serializers.IntegerField(allow_null=True)
+    enclosure_changed = serializers.BooleanField()
+    findings = FindingSerializer(many=True)

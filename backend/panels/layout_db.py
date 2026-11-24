@@ -29,7 +29,7 @@ def enclosure_geometry(panel: Panel) -> tuple[int, int, PanelArea]:
 def sync_rails(panel: Panel) -> None:
     """Make DinRail rows match the enclosure. Refuses to drop occupied rails/slots."""
     rows, per_row, _ = enclosure_geometry(panel)
-    existing = {r.row_index: r for r in panel.rails.all()}
+    existing = {r.row_index: r for r in DinRail.objects.filter(panel=panel)}
     for idx in range(rows):
         if idx in existing:
             rail = existing[idx]
