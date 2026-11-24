@@ -651,3 +651,53 @@ class PdfImageSerializer(serializers.Serializer[None]):
 
 class PdfExportRequestSerializer(serializers.Serializer[None]):
     images = PdfImageSerializer(many=True, max_length=60, required=False, default=list)
+
+
+# --------------------------------------------------------------------- simulation
+class SimSwitchesSerializer(serializers.Serializer[None]):
+    grid = serializers.BooleanField(default=True)
+    generator = serializers.BooleanField(default=False)
+    inverter = serializers.BooleanField(default=True)
+    pv = serializers.BooleanField(default=False)
+    position = serializers.ChoiceField(choices=["auto", "grid", "gen", "off"], default="auto")
+    pv_pct = serializers.FloatField(default=70.0, min_value=0, max_value=100)
+
+
+class SimGroupSerializer(serializers.Serializer[None]):
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    backed_up = serializers.BooleanField()
+    powered = serializers.BooleanField()
+    source = serializers.CharField(allow_null=True)
+    reason = serializers.CharField()
+    phase = serializers.CharField()
+    power_w = serializers.FloatField()
+
+
+class SimSourceSerializer(serializers.Serializer[None]):
+    name = serializers.CharField()
+    on = serializers.BooleanField()
+    role = serializers.CharField()
+    load_w = serializers.FloatField()
+    load_va = serializers.FloatField()
+    current_a = serializers.FloatField()
+    rating_va = serializers.FloatField(allow_null=True)
+    utilization_pct = serializers.FloatField(allow_null=True)
+    note = serializers.CharField()
+
+
+class SimResultSerializer(serializers.Serializer[None]):
+    backup_source = serializers.CharField(allow_null=True)
+    main_source = serializers.CharField(allow_null=True)
+    ats_state = serializers.CharField()
+    groups = SimGroupSerializer(many=True)
+    sources = SimSourceSerializer(many=True)
+    findings = PowerFindingSerializer(many=True)
+    interruption_s = serializers.FloatField(allow_null=True)
+    pv_w = serializers.FloatField()
+    grid_import_w = serializers.FloatField()
+    grid_export_w = serializers.FloatField()
+    battery_net_w = serializers.FloatField()
+    autonomy_h = serializers.FloatField(allow_null=True)
+    powered_w = serializers.FloatField()
+    dark_w = serializers.FloatField()

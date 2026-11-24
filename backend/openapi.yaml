@@ -1605,6 +1605,71 @@ paths:
               schema:
                 $ref: '#/components/schemas/PowerCheck'
           description: ''
+  /api/v1/projects/{id}/power/simulate/:
+    get:
+      operationId: projects_power_simulate_retrieve
+      description: Static power simulation for the given switch positions (query parameters).
+      parameters:
+      - in: query
+        name: generator
+        schema:
+          type: boolean
+          default: false
+      - in: query
+        name: grid
+        schema:
+          type: boolean
+          default: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: query
+        name: inverter
+        schema:
+          type: boolean
+          default: true
+      - in: query
+        name: position
+        schema:
+          enum:
+          - auto
+          - grid
+          - gen
+          - 'off'
+          type: string
+          default: auto
+          minLength: 1
+        description: |-
+          * `auto` - auto
+          * `grid` - grid
+          * `gen` - gen
+          * `off` - off
+      - in: query
+        name: pv
+        schema:
+          type: boolean
+          default: false
+      - in: query
+        name: pv_pct
+        schema:
+          type: number
+          format: double
+          maximum: 100
+          minimum: 0
+          default: 70.0
+      tags:
+      - projects
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimResult'
+          description: ''
   /api/v1/projects/{id}/pv/:
     get:
       operationId: projects_pv_retrieve
@@ -4259,6 +4324,138 @@ components:
         * `grid3_gen1_phase` - 3ф сеть + 1ф генератор (одна фаза)
         * `grid3_gen1_combine` - 3ф сеть + 1ф генератор (объединение фаз)
         * `grid1_gen1` - 1ф сеть + 1ф генератор
+    SimGroup:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        backed_up:
+          type: boolean
+        powered:
+          type: boolean
+        source:
+          type: string
+          nullable: true
+        reason:
+          type: string
+        phase:
+          type: string
+        power_w:
+          type: number
+          format: double
+      required:
+      - backed_up
+      - id
+      - name
+      - phase
+      - power_w
+      - powered
+      - reason
+      - source
+    SimResult:
+      type: object
+      properties:
+        backup_source:
+          type: string
+          nullable: true
+        main_source:
+          type: string
+          nullable: true
+        ats_state:
+          type: string
+        groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/SimGroup'
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/SimSource'
+        findings:
+          type: array
+          items:
+            $ref: '#/components/schemas/PowerFinding'
+        interruption_s:
+          type: number
+          format: double
+          nullable: true
+        pv_w:
+          type: number
+          format: double
+        grid_import_w:
+          type: number
+          format: double
+        grid_export_w:
+          type: number
+          format: double
+        battery_net_w:
+          type: number
+          format: double
+        autonomy_h:
+          type: number
+          format: double
+          nullable: true
+        powered_w:
+          type: number
+          format: double
+        dark_w:
+          type: number
+          format: double
+      required:
+      - ats_state
+      - autonomy_h
+      - backup_source
+      - battery_net_w
+      - dark_w
+      - findings
+      - grid_export_w
+      - grid_import_w
+      - groups
+      - interruption_s
+      - main_source
+      - powered_w
+      - pv_w
+      - sources
+    SimSource:
+      type: object
+      properties:
+        name:
+          type: string
+        'on':
+          type: boolean
+        role:
+          type: string
+        load_w:
+          type: number
+          format: double
+        load_va:
+          type: number
+          format: double
+        current_a:
+          type: number
+          format: double
+        rating_va:
+          type: number
+          format: double
+          nullable: true
+        utilization_pct:
+          type: number
+          format: double
+          nullable: true
+        note:
+          type: string
+      required:
+      - current_a
+      - load_va
+      - load_w
+      - name
+      - note
+      - 'on'
+      - rating_va
+      - role
+      - utilization_pct
     SpdEnum:
       enum:
       - none

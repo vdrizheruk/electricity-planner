@@ -14,6 +14,8 @@ from power.apply import ApplyError, apply_to_panel
 from power.db import get_or_create_power, run_check
 from power.models import PowerSystem
 from power.pv_db import apply_pv_to_panel, get_or_create_pv, run_pv_check
+from power.services import Switches
+from power.sim_db import run_simulation
 from projects.models import Project
 
 from .serializers import (
@@ -25,6 +27,8 @@ from .serializers import (
     ProductSerializer,
     PvCheckSerializer,
     PvSystemSerializer,
+    SimResultSerializer,
+    SimSwitchesSerializer,
 )
 
 
@@ -216,3 +220,14 @@ class PvApplyView(_PowerBase):
             },
             status=status.HTTP_201_CREATED,
         )
+
+
+class SimulateView(_PowerBase):
+    @extend_schema(parameters=[SimSwitchesSerializer], responses=SimResultSerializer)
+    def get(self, request: Request, pk: int) -> Response:
+        """Static power simulation for the given switch positions (query parameters)."""
+        project = self.project(request, pk)
+        ser = SimSwitchesSerializer(data=request.query_params)
+        ser.is_valid(raise_exception=True)
+        res = run_simulation(project, Switches(**ser.validated_data))
+        return Response(SimResultSerializer(asdict(res)).data)
