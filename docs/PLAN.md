@@ -92,18 +92,18 @@ erDiagram
 |---|---|
 | `auth/` register, login, logout, me | POST/GET |
 | `projects/`, `projects/{id}/` | CRUD (только владелец) |
-| `projects/{id}/panels/`, `panels/{id}/` | CRUD, `POST panels/{id}/autolayout/`, `GET panels/{id}/validate/` |
-| `panels/{id}/placements/` | CRUD + bulk PATCH (автосохранение), серверная проверка ширины/коллизий/совместимости |
+| `projects/{id}/panels/`, `panels/{id}/` | CRUD, `GET panels/{id}/validate/` (`POST panels/{id}/autolayout/` — этап 4) |
+| `panels/{id}/placements/` (+ `placements/{id}/`) | CRUD; `PUT/PATCH panels/{id}/placements/bulk/` — атомарное полное состояние (автосохранение); серверная проверка ширины/коллизий/совместимости; `GET panels/{id}/unplaced/` |
 | `panels/{id}/versions/` | list, create, `POST …/{n}/restore/` |
 | `projects/{id}/groups/` | CRUD, `POST …/autoselect/` (автоподбор) |
 | `projects/{id}/calc/` | GET: нагрузка, Кс, баланс фаз, селективность, предупреждения |
 | `projects/{id}/power/` | CRUD источников, сценария, АКБ; `GET …/check/` |
 | `projects/{id}/pv/` | CRUD массивов/строк; `GET …/check/` (Voc, Vmp, Isc, DC/AC), `GET …/yield/` |
-| `catalog/{brands,categories,products}/` | list+filter (тип, бренд, номинал, полюса); `GET products/{id}/analogs/?tier=`; `import/`, `export/` CSV (admin) |
+| `catalog/{brands,categories,products}/` | list+filter (category, brand, tier, rated_a[_min/_max], poles, curve, leakage_ma, rcd_type, q); `GET products/{id}/analogs/?tier=`; `catalog/import/`, `catalog/export/` CSV (только admin) |
 | `projects/{id}/bom/` | GET JSON; `bom.pdf`, `bom.xlsx`; `panels/{id}/export.{svg,png}`; `labels.pdf` |
 | `/healthz`, `/readyz` | liveness / readiness |
 
-Ошибки валидации: `422`-подобный формат DRF `{field: [msgs]}`; для компоновки — `{code, placement_id, message}`.
+Ошибки валидации: `400`, формат DRF `{field: [msgs]}`; для компоновки — `{"layout": [{code, message, key, other_key}]}`; для bulk — `{"placements": {"<index>": [{code, message}]}}`. Чужие объекты отвечают `404`. Auth: сессия + CSRF (`GET auth/csrf/` → заголовок `X-CSRFToken`).
 
 ## 5. Формулы и таблицы
 

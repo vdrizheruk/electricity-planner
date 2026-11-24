@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -101,6 +103,7 @@ class PanelLink(models.Model):
     feeder_breaker_a = models.PositiveSmallIntegerField(null=True, blank=True)
 
     class Meta:
+        ordering = ["id"]
         constraints = [
             models.UniqueConstraint(fields=["source", "target"], name="uniq_panel_link"),
             models.CheckConstraint(
@@ -163,12 +166,12 @@ class ConsumerGroup(models.Model):
     name = models.CharField(max_length=120)
     room = models.CharField(max_length=80, blank=True)
     type = models.CharField(max_length=16, choices=GroupType.choices, default=GroupType.SOCKETS)
-    power_w = models.PositiveIntegerField("мощность, Вт")
+    power_w = models.PositiveIntegerField("мощность, Вт", validators=[MinValueValidator(1)])
     cos_phi = models.DecimalField(
         max_digits=3,
         decimal_places=2,
         default=1,
-        validators=[MinValueValidator(0.1), MaxValueValidator(1)],
+        validators=[MinValueValidator(Decimal("0.1")), MaxValueValidator(Decimal("1"))],
     )
     phase = models.CharField(
         max_length=4, choices=PhaseAssignment.choices, default=PhaseAssignment.AUTO

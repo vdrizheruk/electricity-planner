@@ -30,10 +30,13 @@ INSTALLED_APPS = [
     "allauth",
     "allauth.account",
     "rest_framework",
+    "django_filters",
     "drf_spectacular",
     "accounts",
     "catalog",
     "projects",
+    "panels",
+    "api",
 ]
 
 MIDDLEWARE = [
@@ -99,18 +102,27 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
+    "DEFAULT_PAGINATION_CLASS": "api.pagination.StandardPagination",
+    "PAGE_SIZE": 50,
     "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.SessionAuthentication"],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
     ],
-    "DEFAULT_THROTTLE_RATES": {"anon": "30/min", "user": "300/min"},
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "60/min",
+        "user": "600/min",
+        "auth": "10/min",
+    },
 }
 SPECTACULAR_SETTINGS = {
     "TITLE": "Electricity Planner API",
     "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    "ENUM_NAME_OVERRIDES": {"TierEnum": "catalog.models.Tier"},
+    "COMPONENT_SPLIT_REQUEST": True,
 }
 
 # Security headers / cookies. Strict transport only outside DEBUG.

@@ -14,7 +14,7 @@ select = ["E", "F", "I", "B", "UP", "SIM", "DJ"]
 [tool.mypy]
 python_version = "3.12"
 strict = true
-files = ["calculations", "power/services"]
+files = ["calculations", "power/services", "panels/services"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings"
