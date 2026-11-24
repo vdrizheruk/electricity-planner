@@ -6,6 +6,7 @@ requires-python = ">=3.12"
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+extend-exclude = ["migrations", ".venv"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM", "DJ"]
@@ -18,3 +19,9 @@ files = ["calculations", "power/services"]
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings"
 python_files = ["test_*.py"]
+addopts = "-q"
+env = [
+  "DJANGO_SECRET_KEY=test-secret-key-not-for-production",
+  "DJANGO_DEBUG=false",
+  "DATABASE_URL=postgres://planner:planner@localhost:5432/planner",
+]
