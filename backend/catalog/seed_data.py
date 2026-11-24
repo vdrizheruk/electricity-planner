@@ -949,5 +949,122 @@ def _power() -> list[Item]:
     return i
 
 
+def _switching() -> list[Item]:
+    """Changeover equipment: modular contactors, I-0-II switches, modular ATS, generators."""
+    i: list[Item] = []
+    contactor_sku = {
+        "ABB": "ESB{a}-{p}P",
+        "Hager": "ESC{a}-{p}P",
+        "IEK": "KMR-{a}-{p}P",
+        "E.NEXT": "e.mc.{p}p.{a}",
+    }
+    width = {25: 1, 40: 2, 63: 3}
+    for brand, pattern in contactor_sku.items():
+        for poles in (2, 4):
+            for a in (25, 40, 63):
+                mods = width[a] * (1 if poles == 2 else 2)
+                i.append(
+                    Item(
+                        brand,
+                        C.CONTACTOR,
+                        pattern.format(a=a, p=poles),
+                        f"Контактор модульный {poles}P {a}A 230В",
+                        _brand_price(500 + a * 20 + poles * 150, brand),
+                        rated_a=a,
+                        poles=poles,
+                        modules=mods,
+                        electrical={"coil_v": 230},
+                    )
+                )
+    switch_sku = {"IEK": "VPR-{p}-{a}M", "Hager": "SF{p}{a}", "ABB": "OT{a}F{p}M"}
+    for brand, pattern in switch_sku.items():
+        for poles in (2, 4):
+            for a in (32, 63, 100):
+                i.append(
+                    Item(
+                        brand,
+                        C.ATS,
+                        pattern.format(a=a, p=poles),
+                        f"Переключатель I-0-II модульный {poles}P {a}A",
+                        _brand_price(600 + a * 18 + poles * 200, brand),
+                        rated_a=a,
+                        poles=poles,
+                        modules=(poles + 1) if a < 100 else (poles + 3),
+                        electrical={"manual": True, "positions": "I-0-II"},
+                    )
+                )
+    for brand, pattern in {"E.NEXT": "e.ats.{p}p.{a}", "Eaton": "ATS-{p}P-{a}"}.items():
+        for poles in (2, 4):
+            for a in (32, 63, 100):
+                if brand == "E.NEXT" and poles == 4 and a == 63:
+                    continue  # already in the base accessories list
+                i.append(
+                    Item(
+                        brand,
+                        C.ATS,
+                        pattern.format(a=a, p=poles),
+                        f"Модульный АВР {poles}P {a}A",
+                        _brand_price(3500 + a * 60 + poles * 800, brand),
+                        rated_a=a,
+                        poles=poles,
+                        modules=poles * 2,
+                        electrical={"automatic": True},
+                    )
+                )
+    i += [
+        Item(
+            "Hyundai",
+            C.GENERATOR,
+            "HHY-3020FE",
+            "Генератор бензин 1ф 2.8 кВт / 3.5 кВА, ЭС",
+            22000,
+            din=False,
+            electrical=dict(phases=1, kva=3.5, kw=2.8, cos_phi=0.8, autostart_ready=True),
+        ),
+        Item(
+            "Hyundai",
+            C.GENERATOR,
+            "DHY-8500SE",
+            "Генератор дизель 1ф 6.5 кВт / 8.1 кВА, ЭС",
+            89000,
+            din=False,
+            electrical=dict(phases=1, kva=8.1, kw=6.5, cos_phi=0.8, autostart_ready=True),
+        ),
+        Item(
+            "Hyundai",
+            C.GENERATOR,
+            "DHY-20000SE-T",
+            "Генератор дизель 3ф 16 кВт / 20 кВА, ЭС",
+            210000,
+            din=False,
+            electrical=dict(phases=3, kva=20.0, kw=16, cos_phi=0.8, autostart_ready=True),
+        ),
+        Item(
+            "Growatt",
+            C.INVERTER,
+            "SPF-5000ES",
+            "Off-grid инвертор 5 кВт 1ф",
+            41000,
+            electrical=dict(
+                kind="off-grid",
+                phases=1,
+                p_ac_w=5000,
+                p_surge_w=10000,
+                bypass_a=40,
+                batt_v=48,
+                batt_charge_a=100,
+                mppt_count=1,
+                mppt_min_v=120,
+                mppt_max_v=450,
+                vmax_v=500,
+                imax_per_mppt_a=18,
+                isc_max_per_mppt_a=22,
+            ),
+            din=False,
+        ),
+    ]
+    return i
+
+
 def build_items() -> list[Item]:
-    return [*_breakers(), *_enclosures(), *_accessories(), *_power()]
+    return [*_breakers(), *_enclosures(), *_accessories(), *_power(), *_switching()]

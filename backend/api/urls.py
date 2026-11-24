@@ -2,7 +2,7 @@ from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from rest_framework.routers import DefaultRouter
 
-from . import auth, views
+from . import auth, power_views, views
 
 catalog_router = DefaultRouter()
 catalog_router.register("brands", views.BrandViewSet, basename="brand")
@@ -25,6 +25,9 @@ urlpatterns = [
     path("projects/", views.ProjectViewSet.as_view(LIST)),
     path("projects/<int:pk>/", views.ProjectViewSet.as_view(DETAIL)),
     path("projects/<int:pk>/calc/", views.ProjectViewSet.as_view({"get": "calc"})),
+    path("projects/<int:pk>/power/", power_views.PowerView.as_view()),
+    path("projects/<int:pk>/power/check/", power_views.PowerCheckView.as_view()),
+    path("projects/<int:pk>/power/apply/", power_views.PowerApplyView.as_view()),
     path("projects/<int:project_pk>/panels/", views.PanelViewSet.as_view(LIST)),
     path(
         "projects/<int:project_pk>/links/",

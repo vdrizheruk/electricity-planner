@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     "catalog",
     "projects",
     "panels",
+    "power",
     "api",
 ]
 

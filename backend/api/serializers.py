@@ -8,6 +8,7 @@ from catalog.models import Brand, Category, Product
 from panels.layout_db import enclosure_geometry, sync_rails
 from panels.models import DinRail, LayoutVersion, Placement
 from panels.services.layout import required_width
+from power.models import PowerSystem
 from projects.models import ConsumerGroup, Panel, PanelLink, Project
 
 PLACEABLE_GROUP_CATEGORIES = {"mcb", "rcbo", "rcd", "contactor"}
@@ -401,3 +402,92 @@ class AutolayoutResultSerializer(serializers.Serializer[None]):
     enclosure = serializers.IntegerField(allow_null=True)
     enclosure_changed = serializers.BooleanField()
     findings = FindingSerializer(many=True)
+
+
+# ------------------------------------------------------------------ power
+class PowerSystemSerializer(serializers.ModelSerializer[PowerSystem]):
+    generator = serializers.PrimaryKeyRelatedField(
+        queryset=Product.objects.filter(category__code="generator"),
+        allow_null=True,
+        required=False,
+    )
+    inverter = serializers.PrimaryKeyRelatedField(
+        queryset=Product.objects.filter(category__code="inverter"),
+        allow_null=True,
+        required=False,
+    )
+    battery = serializers.PrimaryKeyRelatedField(
+        queryset=Product.objects.filter(category__code="battery"),
+        allow_null=True,
+        required=False,
+    )
+
+    class Meta:
+        model = PowerSystem
+        fields = [
+            "id",
+            "project",
+            "scenario",
+            "generator",
+            "inverter",
+            "inverter_count",
+            "inverter_mode",
+            "battery",
+            "battery_count",
+            "ats_kind",
+            "ats_poles",
+            "ats_rated_a",
+            "mechanical_interlock",
+            "electrical_interlock",
+            "backup_phase",
+            "autonomy_target_h",
+        ]
+        read_only_fields = ["id", "project"]
+
+
+class PowerFindingSerializer(serializers.Serializer[None]):
+    level = serializers.ChoiceField(choices=["error", "warning", "info"])
+    code = serializers.CharField()
+    message = serializers.CharField()
+
+
+class PowerMetricsSerializer(serializers.Serializer[None]):
+    p_backup_w = serializers.FloatField()
+    s_backup_va = serializers.FloatField()
+    p_start_w = serializers.FloatField()
+    s_start_va = serializers.FloatField()
+    phase_va = serializers.DictField(child=serializers.FloatField())
+    i_backup_a = serializers.FloatField()
+    imbalance_pct = serializers.FloatField()
+    gen_required_kva = serializers.FloatField(allow_null=True)
+    gen_required_kw = serializers.FloatField(allow_null=True)
+    inverter_capacity_w = serializers.FloatField(allow_null=True)
+    inverter_required_w = serializers.FloatField(allow_null=True)
+    autonomy_h = serializers.FloatField(allow_null=True)
+    battery_dc_a = serializers.FloatField(allow_null=True)
+    battery_usable_kwh = serializers.FloatField(allow_null=True)
+
+
+class PowerComponentSerializer(serializers.Serializer[None]):
+    role = serializers.CharField()
+    kind = serializers.CharField()
+    poles = serializers.IntegerField()
+    rated_a = serializers.FloatField()
+    note = serializers.CharField()
+    qty = serializers.IntegerField()
+    product = ProductSerializer(allow_null=True)
+    price_total = serializers.CharField(allow_null=True)
+
+
+class PowerCheckSerializer(serializers.Serializer[None]):
+    ok = serializers.BooleanField()
+    description = serializers.CharField()
+    metrics = PowerMetricsSerializer()
+    findings = PowerFindingSerializer(many=True)
+    components = PowerComponentSerializer(many=True)
+    total_price = serializers.CharField()
+
+
+class PowerApplyResultSerializer(serializers.Serializer[None]):
+    panel = PanelSerializer()
+    placements = PlacementSerializer(many=True)

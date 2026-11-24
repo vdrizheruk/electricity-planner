@@ -581,6 +581,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{id}/power/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Backup-power configuration of the project (created with defaults on first use). */
+        get: operations["projects_power_retrieve"];
+        put: operations["projects_power_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["projects_power_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/projects/{id}/power/apply/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Create (or rebuild) the backup panel from the checked configuration. */
+        post: operations["projects_power_apply_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{id}/power/check/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Power, autonomy and safety checks plus the switchgear selected for the scenario. */
+        get: operations["projects_power_check_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_pk}/groups/": {
         parameters: {
             query?: never;
@@ -722,6 +773,14 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * @description * `none` - Нет
+         *     * `contactor` - На контакторах
+         *     * `modular` - Модульный АВР
+         *     * `manual` - Ручной I-0-II
+         * @enum {string}
+         */
+        AtsKindEnum: "none" | "contactor" | "modular" | "manual";
         AutolayoutOptionsRequest: {
             /** @default true */
             voltage_relay: boolean;
@@ -742,6 +801,13 @@ export interface components {
             enclosure_changed: boolean;
             findings: components["schemas"]["Finding"][];
         };
+        /**
+         * @description * `L1` - L1
+         *     * `L2` - L2
+         *     * `L3` - L3
+         * @enum {string}
+         */
+        BackupPhaseEnum: "L1" | "L2" | "L3";
         Brand: {
             readonly id: number;
             name: string;
@@ -937,6 +1003,13 @@ export interface components {
             /** Format: double */
             demand_va: number;
         };
+        /**
+         * @description * `single` - Один
+         *     * `parallel` - Параллельно
+         *     * `phase_set` - Три фазы из трёх 1ф
+         * @enum {string}
+         */
+        InverterModeEnum: "single" | "parallel" | "phase_set";
         Issue: {
             code: string;
             message: string;
@@ -1183,6 +1256,23 @@ export interface components {
             h_mm?: number | null;
             label?: string;
         };
+        PatchedPowerSystemRequest: {
+            scenario?: components["schemas"]["ScenarioEnum"];
+            generator?: number | null;
+            inverter?: number | null;
+            inverter_count?: number;
+            inverter_mode?: components["schemas"]["InverterModeEnum"];
+            battery?: number | null;
+            battery_count?: number;
+            ats_kind?: components["schemas"]["AtsKindEnum"];
+            ats_poles?: number;
+            ats_rated_a?: number;
+            mechanical_interlock?: boolean;
+            electrical_interlock?: boolean;
+            backup_phase?: components["schemas"]["BackupPhaseEnum"];
+            /** Format: double */
+            autonomy_target_h?: number;
+        };
         PatchedProjectRequest: {
             name?: string;
             object_type?: components["schemas"]["ObjectTypeEnum"];
@@ -1242,6 +1332,101 @@ export interface components {
             w_mm?: number | null;
             h_mm?: number | null;
             label?: string;
+        };
+        PowerApplyResult: {
+            panel: components["schemas"]["Panel"];
+            placements: components["schemas"]["Placement"][];
+        };
+        PowerCheck: {
+            ok: boolean;
+            description: string;
+            metrics: components["schemas"]["PowerMetrics"];
+            findings: components["schemas"]["PowerFinding"][];
+            components: components["schemas"]["PowerComponent"][];
+            total_price: string;
+        };
+        PowerComponent: {
+            role: string;
+            kind: string;
+            poles: number;
+            /** Format: double */
+            rated_a: number;
+            note: string;
+            qty: number;
+            product: components["schemas"]["Product"] | null;
+            price_total: string | null;
+        };
+        PowerFinding: {
+            level: components["schemas"]["LevelEnum"];
+            code: string;
+            message: string;
+        };
+        PowerMetrics: {
+            /** Format: double */
+            p_backup_w: number;
+            /** Format: double */
+            s_backup_va: number;
+            /** Format: double */
+            p_start_w: number;
+            /** Format: double */
+            s_start_va: number;
+            phase_va: {
+                [key: string]: number;
+            };
+            /** Format: double */
+            i_backup_a: number;
+            /** Format: double */
+            imbalance_pct: number;
+            /** Format: double */
+            gen_required_kva: number | null;
+            /** Format: double */
+            gen_required_kw: number | null;
+            /** Format: double */
+            inverter_capacity_w: number | null;
+            /** Format: double */
+            inverter_required_w: number | null;
+            /** Format: double */
+            autonomy_h: number | null;
+            /** Format: double */
+            battery_dc_a: number | null;
+            /** Format: double */
+            battery_usable_kwh: number | null;
+        };
+        PowerSystem: {
+            readonly id: number;
+            readonly project: number;
+            scenario?: components["schemas"]["ScenarioEnum"];
+            generator?: number | null;
+            inverter?: number | null;
+            inverter_count?: number;
+            inverter_mode?: components["schemas"]["InverterModeEnum"];
+            battery?: number | null;
+            battery_count?: number;
+            ats_kind?: components["schemas"]["AtsKindEnum"];
+            ats_poles?: number;
+            ats_rated_a?: number;
+            mechanical_interlock?: boolean;
+            electrical_interlock?: boolean;
+            backup_phase?: components["schemas"]["BackupPhaseEnum"];
+            /** Format: double */
+            autonomy_target_h?: number;
+        };
+        PowerSystemRequest: {
+            scenario?: components["schemas"]["ScenarioEnum"];
+            generator?: number | null;
+            inverter?: number | null;
+            inverter_count?: number;
+            inverter_mode?: components["schemas"]["InverterModeEnum"];
+            battery?: number | null;
+            battery_count?: number;
+            ats_kind?: components["schemas"]["AtsKindEnum"];
+            ats_poles?: number;
+            ats_rated_a?: number;
+            mechanical_interlock?: boolean;
+            electrical_interlock?: boolean;
+            backup_phase?: components["schemas"]["BackupPhaseEnum"];
+            /** Format: double */
+            autonomy_target_h?: number;
         };
         Product: {
             readonly id: number;
@@ -1340,6 +1525,17 @@ export interface components {
          * @enum {string}
          */
         RcdTypeEnum: "AC" | "A" | "F" | "B";
+        /**
+         * @description * `grid_gen_ats` - Сеть + генератор через АВР
+         *     * `grid_inverter` - Сеть + инвертор
+         *     * `grid_inverter_gen` - Сеть + инвертор + генератор
+         *     * `manual_i0ii` - Ручной переключатель I-0-II
+         *     * `grid3_gen1_phase` - 3ф сеть + 1ф генератор (одна фаза)
+         *     * `grid3_gen1_combine` - 3ф сеть + 1ф генератор (объединение фаз)
+         *     * `grid1_gen1` - 1ф сеть + 1ф генератор
+         * @enum {string}
+         */
+        ScenarioEnum: "grid_gen_ats" | "grid_inverter" | "grid_inverter_gen" | "manual_i0ii" | "grid3_gen1_phase" | "grid3_gen1_combine" | "grid1_gen1";
         /**
          * @description * `none` - none
          *     * `2` - 2
@@ -2504,6 +2700,123 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Calculation"];
+                };
+            };
+        };
+    };
+    projects_power_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PowerSystem"];
+                };
+            };
+        };
+    };
+    projects_power_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PowerSystemRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PowerSystemRequest"];
+                "multipart/form-data": components["schemas"]["PowerSystemRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PowerSystem"];
+                };
+            };
+        };
+    };
+    projects_power_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedPowerSystemRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedPowerSystemRequest"];
+                "multipart/form-data": components["schemas"]["PatchedPowerSystemRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PowerSystem"];
+                };
+            };
+        };
+    };
+    projects_power_apply_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PowerApplyResult"];
+                };
+            };
+        };
+    };
+    projects_power_check_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PowerCheck"];
                 };
             };
         };
