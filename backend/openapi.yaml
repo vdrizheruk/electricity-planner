@@ -1507,6 +1507,130 @@ paths:
               schema:
                 $ref: '#/components/schemas/PowerCheck'
           description: ''
+  /api/v1/projects/{id}/pv/:
+    get:
+      operationId: projects_pv_retrieve
+      description: PV configuration of the project (created empty on first use).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PvSystem'
+          description: ''
+    put:
+      operationId: projects_pv_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PvSystemRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PvSystemRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PvSystemRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PvSystem'
+          description: ''
+    patch:
+      operationId: projects_pv_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPvSystemRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPvSystemRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPvSystemRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PvSystem'
+          description: ''
+  /api/v1/projects/{id}/pv/apply/:
+    post:
+      operationId: projects_pv_apply_create
+      description: Create (or rebuild) the DC box panel from the checked PV configuration.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PowerApplyResult'
+          description: ''
+  /api/v1/projects/{id}/pv/check/:
+    get:
+      operationId: projects_pv_check_retrieve
+      description: String, voltage, current, cable and yield checks plus the bill
+        of the PV system.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PvCheck'
+          description: ''
   /api/v1/projects/{project_pk}/groups/:
     get:
       operationId: projects_groups_list
@@ -2889,6 +3013,46 @@ components:
           maximum: 32767
           minimum: -32768
           title: Tmin для PV, °C
+    PatchedPvSystemRequest:
+      type: object
+      properties:
+        module:
+          type: integer
+          nullable: true
+        inverter:
+          type: integer
+          nullable: true
+        inverter_count:
+          type: integer
+          maximum: 9
+          minimum: 1
+        t_min_c:
+          type: number
+          format: double
+          maximum: 10.0
+          minimum: -50.0
+        t_cell_max_c:
+          type: number
+          format: double
+          maximum: 95.0
+          minimum: 40.0
+        region:
+          $ref: '#/components/schemas/RegionEnum'
+        performance_ratio:
+          type: number
+          format: double
+          maximum: 0.95
+          minimum: 0.5
+        export_limit_w:
+          type: integer
+          maximum: 1000000
+          minimum: 0
+        green_tariff:
+          type: boolean
+        arrays:
+          type: array
+          items:
+            $ref: '#/components/schemas/PvArrayRequest'
     PatchedUserRequest:
       type: object
       properties:
@@ -3465,6 +3629,330 @@ components:
           title: Tmin для PV, °C
       required:
       - name
+    PvArray:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        mppt:
+          type: integer
+          maximum: 36
+          minimum: 1
+        series:
+          type: integer
+          maximum: 40
+          minimum: 1
+        strings:
+          type: integer
+          maximum: 20
+          minimum: 1
+        azimuth_deg:
+          type: number
+          format: double
+          maximum: 180.0
+          minimum: -180.0
+        tilt_deg:
+          type: number
+          format: double
+          maximum: 90.0
+          minimum: 0.0
+        cable_m:
+          type: number
+          format: double
+          maximum: 500.0
+          minimum: 1.0
+      required:
+      - id
+      - mppt
+    PvArrayRequest:
+      type: object
+      properties:
+        mppt:
+          type: integer
+          maximum: 36
+          minimum: 1
+        series:
+          type: integer
+          maximum: 40
+          minimum: 1
+        strings:
+          type: integer
+          maximum: 20
+          minimum: 1
+        azimuth_deg:
+          type: number
+          format: double
+          maximum: 180.0
+          minimum: -180.0
+        tilt_deg:
+          type: number
+          format: double
+          maximum: 90.0
+          minimum: 0.0
+        cable_m:
+          type: number
+          format: double
+          maximum: 500.0
+          minimum: 1.0
+      required:
+      - mppt
+    PvArrayResult:
+      type: object
+      properties:
+        mppt:
+          type: integer
+        modules:
+          type: integer
+        kwp:
+          type: number
+          format: double
+        voc_cold_v:
+          type: number
+          format: double
+        vmp_stc_v:
+          type: number
+          format: double
+        vmp_hot_v:
+          type: number
+          format: double
+        vmp_cold_v:
+          type: number
+          format: double
+        isc_a:
+          type: number
+          format: double
+        imp_a:
+          type: number
+          format: double
+        fuse_a:
+          type: number
+          format: double
+          nullable: true
+        cable_mm2:
+          type: integer
+        drop_pct:
+          type: number
+          format: double
+        yield_kwh:
+          type: number
+          format: double
+      required:
+      - cable_mm2
+      - drop_pct
+      - fuse_a
+      - imp_a
+      - isc_a
+      - kwp
+      - modules
+      - mppt
+      - vmp_cold_v
+      - vmp_hot_v
+      - vmp_stc_v
+      - voc_cold_v
+      - yield_kwh
+    PvCheck:
+      type: object
+      properties:
+        configured:
+          type: boolean
+        ok:
+          type: boolean
+        description:
+          type: string
+        metrics:
+          allOf:
+          - $ref: '#/components/schemas/PvMetrics'
+          nullable: true
+        arrays:
+          type: array
+          items:
+            $ref: '#/components/schemas/PvArrayResult'
+        findings:
+          type: array
+          items:
+            $ref: '#/components/schemas/PowerFinding'
+        components:
+          type: array
+          items:
+            $ref: '#/components/schemas/PvComponent'
+        total_price:
+          type: string
+      required:
+      - arrays
+      - components
+      - configured
+      - description
+      - findings
+      - metrics
+      - ok
+      - total_price
+    PvComponent:
+      type: object
+      properties:
+        role:
+          type: string
+        kind:
+          type: string
+        qty:
+          type: integer
+        poles:
+          type: integer
+        rated_a:
+          type: number
+          format: double
+        vdc_v:
+          type: number
+          format: double
+        mm2:
+          type: integer
+        placed:
+          type: boolean
+        note:
+          type: string
+        product:
+          allOf:
+          - $ref: '#/components/schemas/Product'
+          nullable: true
+        price_total:
+          type: string
+          nullable: true
+      required:
+      - kind
+      - mm2
+      - note
+      - placed
+      - poles
+      - price_total
+      - product
+      - qty
+      - rated_a
+      - role
+      - vdc_v
+    PvMetrics:
+      type: object
+      properties:
+        modules:
+          type: integer
+        kwp:
+          type: number
+          format: double
+        p_ac_w:
+          type: number
+          format: double
+        dc_ac_ratio:
+          type: number
+          format: double
+        clip_loss_pct:
+          type: number
+          format: double
+        yield_kwh_year:
+          type: number
+          format: double
+        specific_yield:
+          type: number
+          format: double
+        ac_breaker_a:
+          type: number
+          format: double
+      required:
+      - ac_breaker_a
+      - clip_loss_pct
+      - dc_ac_ratio
+      - kwp
+      - modules
+      - p_ac_w
+      - specific_yield
+      - yield_kwh_year
+    PvSystem:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        project:
+          type: integer
+          readOnly: true
+        module:
+          type: integer
+          nullable: true
+        inverter:
+          type: integer
+          nullable: true
+        inverter_count:
+          type: integer
+          maximum: 9
+          minimum: 1
+        t_min_c:
+          type: number
+          format: double
+          maximum: 10.0
+          minimum: -50.0
+        t_cell_max_c:
+          type: number
+          format: double
+          maximum: 95.0
+          minimum: 40.0
+        region:
+          $ref: '#/components/schemas/RegionEnum'
+        performance_ratio:
+          type: number
+          format: double
+          maximum: 0.95
+          minimum: 0.5
+        export_limit_w:
+          type: integer
+          maximum: 1000000
+          minimum: 0
+        green_tariff:
+          type: boolean
+        arrays:
+          type: array
+          items:
+            $ref: '#/components/schemas/PvArray'
+      required:
+      - id
+      - project
+    PvSystemRequest:
+      type: object
+      properties:
+        module:
+          type: integer
+          nullable: true
+        inverter:
+          type: integer
+          nullable: true
+        inverter_count:
+          type: integer
+          maximum: 9
+          minimum: 1
+        t_min_c:
+          type: number
+          format: double
+          maximum: 10.0
+          minimum: -50.0
+        t_cell_max_c:
+          type: number
+          format: double
+          maximum: 95.0
+          minimum: 40.0
+        region:
+          $ref: '#/components/schemas/RegionEnum'
+        performance_ratio:
+          type: number
+          format: double
+          maximum: 0.95
+          minimum: 0.5
+        export_limit_w:
+          type: integer
+          maximum: 1000000
+          minimum: 0
+        green_tariff:
+          type: boolean
+        arrays:
+          type: array
+          items:
+            $ref: '#/components/schemas/PvArrayRequest'
     Rcd:
       type: object
       properties:
@@ -3511,6 +3999,16 @@ components:
         * `A` - A
         * `F` - F
         * `B` - B
+    RegionEnum:
+      enum:
+      - north
+      - center
+      - south
+      type: string
+      description: |-
+        * `north` - Север
+        * `center` - Центр
+        * `south` - Юг
     ScenarioEnum:
       enum:
       - grid_gen_ats

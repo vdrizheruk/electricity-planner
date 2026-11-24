@@ -28,6 +28,9 @@ urlpatterns = [
     path("projects/<int:pk>/power/", power_views.PowerView.as_view()),
     path("projects/<int:pk>/power/check/", power_views.PowerCheckView.as_view()),
     path("projects/<int:pk>/power/apply/", power_views.PowerApplyView.as_view()),
+    path("projects/<int:pk>/pv/", power_views.PvView.as_view()),
+    path("projects/<int:pk>/pv/check/", power_views.PvCheckView.as_view()),
+    path("projects/<int:pk>/pv/apply/", power_views.PvApplyView.as_view()),
     path("projects/<int:project_pk>/panels/", views.PanelViewSet.as_view(LIST)),
     path(
         "projects/<int:project_pk>/links/",
