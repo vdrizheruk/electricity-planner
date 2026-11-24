@@ -24,6 +24,7 @@ export function boardToSvg(
   panel: PanelModel,
   products: Map<number, Product>,
   groups: Group[],
+  threePhase = false,
 ): { svg: string } & SvgSize {
   const groupName = new Map(groups.map((g) => [g.id, g.name]));
   const rails = [...panel.rails].sort((a, b) => a.rowIndex - b.rowIndex);
@@ -68,7 +69,7 @@ export function boardToSvg(
       out.push('</g>');
     }
   });
-  const ws = buildWires(panel, products, groups);
+  const ws = buildWires(panel, products, groups, threePhase);
   out.push(`<g transform="translate(${PAD} ${top})">${wiresToSvg(ws)}</g>`);
   if (mountW > 0) {
     const ox = PAD * 2 + railW;

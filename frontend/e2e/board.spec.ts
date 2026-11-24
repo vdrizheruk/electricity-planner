@@ -296,6 +296,29 @@ test.describe('board editor', () => {
       .toBe(0);
   });
 
+  test('three-phase project draws L1/L2/L3 in different colours', async ({ page }) => {
+    const csrf =
+      (await page.request.storageState()).cookies.find((c) => c.name === 'csrftoken')?.value ?? '';
+    const headers = { 'X-CSRFToken': csrf, Referer: 'http://localhost:5173/' };
+    const res = await page.request.patch(`/api/v1/projects/${projectId}/`, {
+      data: { grid: '3ph' },
+      headers,
+    });
+    expect(res.ok()).toBeTruthy();
+    await page.request.post(`/api/v1/projects/${projectId}/groups/autoselect/`, {
+      data: {},
+      headers,
+    });
+    await page.reload();
+    await page.getByRole('button', { name: 'Автокомпоновка' }).click();
+    await page.getByRole('button', { name: 'Выполнить' }).click();
+    await expect(page.getByRole('dialog')).toHaveCount(0, { timeout: 15_000 });
+    for (const ph of ['L1', 'L2', 'L3']) {
+      await expect(page.locator(`[data-phase="${ph}"]`).first()).toBeAttached();
+    }
+    await page.screenshot({ path: 'test-results/wires3.png' });
+  });
+
   test('mobile viewport is read-only', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 800 });
     await expect(page.getByText('Просмотр', { exact: false })).toBeVisible();

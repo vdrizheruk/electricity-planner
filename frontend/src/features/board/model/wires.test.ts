@@ -4,7 +4,7 @@ import { createPositionsSaver } from './positionsSaver';
 import { createBoardStore } from './store';
 import { device, panel, product } from './testkit';
 import type { Group, PanelModel, Product } from './types';
-import { buildWires, railTop, ROW_PITCH, WIRE_COLOR, wiresToSvg } from './wires';
+import { buildWires, PHASE_COLOR, railTop, ROW_PITCH, WIRE_COLOR, wiresToSvg } from './wires';
 
 const cat = (id: number, code: string, extra: Partial<Product> = {}) =>
   product({
@@ -148,5 +148,63 @@ describe('positions saver', () => {
     expect(save).toHaveBeenCalledWith(1, { s77: { x: 2, y: 2 }, bus: { x: 3, y: 3 } });
     saver.stop();
     vi.useRealTimers();
+  });
+});
+
+describe('3-phase colours', () => {
+  const g3 = [
+    { id: 10, name: 'A', power_w: 2000, cable_mm2: '2.50', assigned_phase: 'L2' },
+    { id: 11, name: 'B', power_w: 2000, cable_mm2: '2.50', assigned_phase: 'L3' },
+    { id: 12, name: 'Плита', power_w: 9000, cable_mm2: '6.00', assigned_phase: '3ph' },
+  ] as unknown as Group[];
+  const p3 = cat(9, 'mcb', { poles: 3 });
+  const pm = new Map([...products, [9, p3]]);
+  const board3 = (): PanelModel =>
+    panel({
+      devices: [
+        device('main', { productId: 3, start: 0, width: 2 }),
+        device('qa', { productId: 1, start: 2, groupId: 10 }),
+        device('qb', { productId: 1, start: 3, groupId: 11 }),
+        device('qc', { productId: 9, start: 4, width: 3, groupId: 12 }),
+      ],
+    });
+  const ws = buildWires(board3(), pm, g3, true);
+  const out = (id: string) => ws.wires.filter((w) => w.id.startsWith(`out:L:${id}`));
+
+  it('uses IEC 60445 colours: L1 brown, L2 black, L3 grey', () => {
+    expect(PHASE_COLOR).toEqual({ L1: '#92400e', L2: '#111827', L3: '#9ca3af' });
+  });
+
+  it('single-phase group is drawn in its phase colour', () => {
+    expect(out('qa').map((w) => w.phase)).toEqual(['L2']);
+    expect(out('qa')[0]?.color).toBe(PHASE_COLOR.L2);
+    expect(out('qb')[0]?.color).toBe(PHASE_COLOR.L3);
+  });
+
+  it('three-phase group gets three parallel wires in three colours', () => {
+    const w = out('qc');
+    expect(w.map((x) => x.phase)).toEqual(['L1', 'L2', 'L3']);
+    const xs = w.map((x) => x.points[1]!.x);
+    expect(new Set(xs).size).toBe(3);
+  });
+
+  it('feeder brings all three phases', () => {
+    expect(ws.wires.filter((w) => w.id.startsWith('in:L')).map((w) => w.phase)).toEqual([
+      'L1',
+      'L2',
+      'L3',
+    ]);
+  });
+
+  it('single-phase project keeps red and ignores group phases', () => {
+    const w = buildWires(board3(), pm, g3, false);
+    expect(w.wires.every((x) => x.kind !== 'L' || x.color === WIRE_COLOR.L)).toBe(true);
+    expect(w.wires.some((x) => x.phase)).toBe(false);
+  });
+
+  it('svg carries the phase colours', () => {
+    const svg = wiresToSvg(ws);
+    expect(svg).toContain(PHASE_COLOR.L1);
+    expect(svg).toContain('data-phase="L3"');
   });
 });

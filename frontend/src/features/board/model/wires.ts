@@ -7,11 +7,19 @@ export const WIRE_GAP = 44;
 export const ROW_PITCH = RAIL_HEIGHT_PX + WIRE_GAP;
 
 export type WireKind = 'L' | 'N' | 'PE';
+export type Phase = 'L1' | 'L2' | 'L3';
+const PHASES: Phase[] = ['L1', 'L2', 'L3'];
 
 export const WIRE_COLOR: Record<WireKind, string> = {
   L: '#dc2626',
   N: '#2563eb',
   PE: '#eab308',
+};
+/** IEC 60445 phase colours, used in 3-phase projects. Single-phase projects use red. */
+export const PHASE_COLOR: Record<Phase, string> = {
+  L1: '#92400e',
+  L2: '#111827',
+  L3: '#9ca3af',
 };
 export const PE_STRIPE = '#16a34a';
 
@@ -22,6 +30,10 @@ export interface Pt {
 export interface Wire {
   id: string;
   kind: WireKind;
+  /** Stroke colour. */
+  color: string;
+  /** Phase of an L wire in a 3-phase project. */
+  phase?: Phase;
   points: Pt[];
 }
 export interface Bar {
@@ -43,6 +55,7 @@ const N_BAR_DY = 14;
 const PE_BAR_DY = 26;
 const TERM_MARGIN = 4;
 const TRACKS = 3;
+const PHASE_STEP = 4;
 
 export function railTop(row: number): number {
   return WIRE_GAP + row * ROW_PITCH;
@@ -65,6 +78,7 @@ export function buildWires(
   panel: PanelModel,
   products: Map<number, Product>,
   groups: Group[],
+  threePhase = false,
 ): WireSet {
   const rails = [...panel.rails].sort((a, b) => a.rowIndex - b.rowIndex);
   const rowOf = new Map(rails.map((r, i) => [r.id, i]));
@@ -109,6 +123,46 @@ export function buildWires(
     return key === 'feeder' ? null : (byId.get(key) ?? null);
   };
 
+  const childOf = new Map<string, Device>();
+  for (const e of diagram.edges) {
+    const child = byId.get(e.target);
+    if (child && child.groupId !== null && !childOf.has(e.source)) childOf.set(e.source, child);
+  }
+  const groupOf = new Map(groups.map((g) => [g.id, g]));
+  /** Phases carried by a device in a 3-phase project. */
+  const phasesOf = (d: Device, depth = 0): Phase[] => {
+    const g = d.groupId !== null ? groupOf.get(d.groupId) : undefined;
+    if (g && (PHASES as string[]).includes(g.assigned_phase)) return [g.assigned_phase as Phase];
+    if (g && g.assigned_phase === '3ph') return PHASES;
+    const p = products.get(d.productId);
+    if ((p?.poles ?? 1) >= 3) return PHASES;
+    const child = childOf.get(d.id);
+    if (child && depth < 2) return phasesOf(child, depth + 1).slice(0, 1);
+    return ['L1'];
+  };
+
+  /** Push the L wire(s) of one connection: one red wire, or one per phase in 3-phase projects. */
+  const pushL = (id: string, d: Device | null, pts: (dx: number) => Pt[], phases?: Phase[]) => {
+    if (!threePhase) {
+      wires.push({ id, kind: 'L', color: WIRE_COLOR.L, points: pts(0) });
+      return;
+    }
+    const list = phases ?? (d ? phasesOf(d) : PHASES);
+    list.forEach((ph, i) => {
+      wires.push({
+        id: `${id}:${ph}`,
+        kind: 'L',
+        color: PHASE_COLOR[ph],
+        phase: ph,
+        points: pts(list.length > 1 ? PHASES.indexOf(ph) * PHASE_STEP : i * PHASE_STEP),
+      });
+    });
+  };
+  const shift = (pts: Pt[], dx: number): Pt[] => pts.map((q) => ({ x: q.x + dx, y: q.y }));
+  const wire = (id: string, kind: 'N' | 'PE', points: Pt[]): void => {
+    wires.push({ id, kind, color: WIRE_COLOR[kind], points });
+  };
+
   for (const e of diagram.edges) {
     const b = byId.get(e.target);
     if (!b || !onRail(b)) continue;
@@ -119,11 +173,7 @@ export function buildWires(
     const chY = railTop(row) + RAIL_HEIGHT_PX + nextTrack(row);
     const p = outPt(a);
     const q = inPt(b);
-    wires.push({
-      id: `L:${e.id}`,
-      kind: 'L',
-      points: [p, { x: p.x, y: chY }, { x: q.x, y: chY }, q],
-    });
+    pushL(`L:${e.id}`, b, (dx) => shift([p, { x: p.x, y: chY }, { x: q.x, y: chY }, q], dx));
   }
 
   // Feeder entering the first device of the input chain from above.
@@ -134,23 +184,24 @@ export function buildWires(
       : (diagram.edges.map((e) => byId.get(e.target)).find((d) => d && onRail(d)) ?? undefined);
   if (head && onRail(head)) {
     const q = inPt(head);
-    wires.push({ id: 'in:L', kind: 'L', points: [{ x: q.x, y: 4 }, q] });
-    wires.push({
-      id: 'in:N',
-      kind: 'N',
-      points: [
-        { x: q.x + 7, y: 4 },
-        { x: q.x + 7, y: q.y },
+    const nOff = threePhase ? 14 : 7;
+    pushL(
+      'in:L',
+      null,
+      (dx) => [
+        { x: q.x + dx, y: 4 },
+        { x: q.x + dx, y: q.y },
       ],
-    });
-    wires.push({
-      id: 'in:PE',
-      kind: 'PE',
-      points: [
-        { x: q.x + 14, y: 4 },
-        { x: q.x + 14, y: q.y },
-      ],
-    });
+      PHASES,
+    );
+    wire('in:N', 'N', [
+      { x: q.x + nOff, y: 4 },
+      { x: q.x + nOff, y: q.y },
+    ]);
+    wire('in:PE', 'PE', [
+      { x: q.x + nOff * 2, y: 4 },
+      { x: q.x + nOff * 2, y: q.y },
+    ]);
   }
 
   for (const d of panel.devices) {
@@ -158,38 +209,26 @@ export function buildWires(
     const p = products.get(d.productId);
     if (hasN(p)) {
       const x = left(d) + d.width * MODULE_PX - TERM_MARGIN;
-      wires.push({
-        id: `N:${d.id}`,
-        kind: 'N',
-        points: [
-          { x, y: nBarY(d) },
-          { x, y: outPt(d).y },
-        ],
-      });
+      wire(`N:${d.id}`, 'N', [
+        { x, y: nBarY(d) },
+        { x, y: outPt(d).y },
+      ]);
     }
     const code = p?.category.code;
     if (d.groupId !== null && (code === 'mcb' || code === 'rcbo')) {
       const exit = top(d) + ROW_PITCH - 3;
       const x0 = left(d) + TERM_MARGIN;
-      wires.push(
-        { id: `out:L:${d.id}`, kind: 'L', points: [outPt(d), { x: x0, y: exit }] },
-        {
-          id: `out:N:${d.id}`,
-          kind: 'N',
-          points: [
-            { x: x0 + 6, y: nBarY(d) },
-            { x: x0 + 6, y: exit },
-          ],
-        },
-        {
-          id: `out:PE:${d.id}`,
-          kind: 'PE',
-          points: [
-            { x: x0 + 12, y: peBarY(d) },
-            { x: x0 + 12, y: exit },
-          ],
-        },
-      );
+      const ph = threePhase ? phasesOf(d) : [];
+      const nOff = ph.length > 1 ? 14 : 6;
+      pushL(`out:L:${d.id}`, d, (dx) => [outPt(d), { x: x0 + dx, y: exit }]);
+      wire(`out:N:${d.id}`, 'N', [
+        { x: x0 + nOff, y: nBarY(d) },
+        { x: x0 + nOff, y: exit },
+      ]);
+      wire(`out:PE:${d.id}`, 'PE', [
+        { x: x0 + nOff * 2, y: peBarY(d) },
+        { x: x0 + nOff * 2, y: exit },
+      ]);
     }
   }
 
@@ -221,9 +260,9 @@ export function wiresToSvg(ws: WireSet): string {
   for (const w of ws.wires) {
     const d = path(w.points);
     out.push(
-      `<g data-wire="${w.kind}" data-wire-id="${w.id}">`,
+      `<g data-wire="${w.kind}"${w.phase ? ` data-phase="${w.phase}"` : ''} data-wire-id="${w.id}">`,
       `<path d="${d}" fill="none" stroke="#fff" stroke-width="5" stroke-linejoin="round" opacity="0.85"/>`,
-      `<path d="${d}" fill="none" stroke="${WIRE_COLOR[w.kind]}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`,
+      `<path d="${d}" fill="none" stroke="${w.color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`,
     );
     if (w.kind === 'PE') {
       out.push(
