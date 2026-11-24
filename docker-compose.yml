@@ -1,0 +1,77 @@
+# Local / single-host deployment: db + backend (gunicorn) + frontend (static SPA) + nginx (edge).
+#   cp .env.example .env   # set DJANGO_SECRET_KEY and POSTGRES_PASSWORD
+#   docker compose up --build
+# The application is then at http://localhost:${HTTP_PORT:-8080}
+name: electricity-planner
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-planner}
+      POSTGRES_USER: ${POSTGRES_USER:-planner}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?set DJANGO_SECRET_KEY in .env}
+      DJANGO_DEBUG: "false"
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,backend}
+      DJANGO_CSRF_TRUSTED_ORIGINS: ${PUBLIC_ORIGIN:-http://localhost:8080}
+      # Plain HTTP on localhost: switch to true behind TLS.
+      DJANGO_COOKIE_SECURE: ${DJANGO_COOKIE_SECURE:-false}
+      DATABASE_URL: postgres://${POSTGRES_USER:-planner}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-planner}
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-3}
+      RUN_MIGRATIONS: "1"
+      SEED_CATALOG: "1"
+    depends_on:
+      db:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request as u; u.urlopen('http://127.0.0.1:8000/readyz', timeout=3)"
+      interval: 10s
+      timeout: 4s
+      start_period: 60s
+      retries: 6
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+    volumes:
+      - ./deploy/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+
+volumes:
+  pgdata:
