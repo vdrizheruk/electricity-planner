@@ -44,6 +44,9 @@ export function ProjectPage() {
         <button className="btn" onClick={() => void groupsApi.autoselect(id).then(refresh)}>
           {t('project.autoselect')}
         </button>
+        <Link className="btn" data-testid="power-link" to={`/projects/${id}/power`}>
+          {t('power.open')}
+        </Link>
         <Link className="btn btn-primary" to={`/projects/${id}/board`}>
           {t('project.editor')}
         </Link>

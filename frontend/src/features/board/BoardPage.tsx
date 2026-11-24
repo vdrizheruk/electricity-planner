@@ -27,6 +27,7 @@ import { createPositionsSaver } from './model/positionsSaver';
 import { buildDiagram } from './model/diagram';
 import { diagramToSvg } from './model/diagramSvg';
 import { boardToSvg } from './model/exportSvg';
+import { PHASE_COLOR } from './model/wires';
 import { labelItems, labelsToSvg } from './model/labels';
 import {
   findFreeSpot,
@@ -69,6 +70,7 @@ export function BoardPage() {
   const [hover, setHover] = useState<Hover>(null);
   const [drag, setDrag] = useState<DragData | null>(null);
   const [toast, setToast] = useState('');
+  const [threePhase, setThreePhase] = useState(false);
   const [showWires, setShowWires] = useState(true);
   const [mode, setMode] = useState<'board' | 'diagram'>('board');
   const [dialog, setDialog] = useState<'autolayout' | 'versions' | null>(null);
@@ -94,6 +96,7 @@ export function BoardPage() {
     const b = await loadBoard(projectId);
     store.getState().load({ panels: b.panels, products: b.products, groups: b.groups });
     setTier(b.project.price_tier ?? 'mid');
+    setThreePhase(b.project.grid === '3ph');
     setActiveId((cur) => cur ?? b.panels[0]?.id ?? null);
     saver.current?.stop();
     saver.current = createAutosaver(store, savePanel);
@@ -382,7 +385,7 @@ export function BoardPage() {
     if (!active) return null;
     return mode === 'diagram'
       ? diagramToSvg(buildDiagram(active, products, groups), active.name)
-      : boardToSvg(active, products, groups);
+      : boardToSvg(active, products, groups, threePhase);
   }
   function exportLabels() {
     if (!active) return;
@@ -549,7 +552,17 @@ export function BoardPage() {
             />
             {t('board.wires')}
             <span className="ml-1 inline-flex items-center gap-1 text-[11px]">
-              <i className="inline-block h-1 w-4 bg-red-600" /> L
+              {threePhase ? (
+                <>
+                  <i className="inline-block h-1 w-4" style={{ background: PHASE_COLOR.L1 }} /> L1
+                  <i className="inline-block h-1 w-4" style={{ background: PHASE_COLOR.L2 }} /> L2
+                  <i className="inline-block h-1 w-4" style={{ background: PHASE_COLOR.L3 }} /> L3
+                </>
+              ) : (
+                <>
+                  <i className="inline-block h-1 w-4 bg-red-600" /> L
+                </>
+              )}
               <i className="inline-block h-1 w-4 bg-blue-600" /> N
               <i className="inline-block h-1 w-4 bg-yellow-400" /> PE
             </span>
@@ -617,6 +630,7 @@ export function BoardPage() {
                       active={active?.id === p.id}
                       readOnly={readOnly}
                       showWires={showWires}
+                      threePhase={threePhase}
                       enclosures={enclosures}
                       onActivate={() => setActiveId(p.id)}
                       onDeviceClick={(id, add) =>

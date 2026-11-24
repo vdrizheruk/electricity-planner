@@ -1382,6 +1382,131 @@ paths:
               schema:
                 $ref: '#/components/schemas/Calculation'
           description: ''
+  /api/v1/projects/{id}/power/:
+    get:
+      operationId: projects_power_retrieve
+      description: Backup-power configuration of the project (created with defaults
+        on first use).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PowerSystem'
+          description: ''
+    put:
+      operationId: projects_power_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PowerSystemRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PowerSystemRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PowerSystemRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PowerSystem'
+          description: ''
+    patch:
+      operationId: projects_power_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPowerSystemRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPowerSystemRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPowerSystemRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PowerSystem'
+          description: ''
+  /api/v1/projects/{id}/power/apply/:
+    post:
+      operationId: projects_power_apply_create
+      description: Create (or rebuild) the backup panel from the checked configuration.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PowerApplyResult'
+          description: ''
+  /api/v1/projects/{id}/power/check/:
+    get:
+      operationId: projects_power_check_retrieve
+      description: Power, autonomy and safety checks plus the switchgear selected
+        for the scenario.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - projects
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PowerCheck'
+          description: ''
   /api/v1/projects/{project_pk}/groups/:
     get:
       operationId: projects_groups_list
@@ -1679,6 +1804,18 @@ paths:
           description: ''
 components:
   schemas:
+    AtsKindEnum:
+      enum:
+      - none
+      - contactor
+      - modular
+      - manual
+      type: string
+      description: |-
+        * `none` - Нет
+        * `contactor` - На контакторах
+        * `modular` - Модульный АВР
+        * `manual` - Ручной I-0-II
     AutolayoutOptionsRequest:
       type: object
       properties:
@@ -1727,6 +1864,16 @@ components:
       - findings
       - placements
       - required_modules
+    BackupPhaseEnum:
+      enum:
+      - L1
+      - L2
+      - L3
+      type: string
+      description: |-
+        * `L1` - L1
+        * `L2` - L2
+        * `L3` - L3
     Brand:
       type: object
       properties:
@@ -2186,6 +2333,16 @@ components:
       - rcd_ma
       - rcd_type
       - voltage_drop_pct
+    InverterModeEnum:
+      enum:
+      - single
+      - parallel
+      - phase_set
+      type: string
+      description: |-
+        * `single` - Один
+        * `parallel` - Параллельно
+        * `phase_set` - Три фазы из трёх 1ф
     Issue:
       type: object
       properties:
@@ -2662,6 +2819,51 @@ components:
         label:
           type: string
           maxLength: 64
+    PatchedPowerSystemRequest:
+      type: object
+      properties:
+        scenario:
+          $ref: '#/components/schemas/ScenarioEnum'
+        generator:
+          type: integer
+          nullable: true
+        inverter:
+          type: integer
+          nullable: true
+        inverter_count:
+          type: integer
+          maximum: 9
+          minimum: 1
+        inverter_mode:
+          $ref: '#/components/schemas/InverterModeEnum'
+        battery:
+          type: integer
+          nullable: true
+        battery_count:
+          type: integer
+          maximum: 64
+          minimum: 1
+        ats_kind:
+          $ref: '#/components/schemas/AtsKindEnum'
+        ats_poles:
+          type: integer
+          maximum: 4
+          minimum: 1
+        ats_rated_a:
+          type: integer
+          maximum: 1000
+          minimum: 0
+        mechanical_interlock:
+          type: boolean
+        electrical_interlock:
+          type: boolean
+        backup_phase:
+          $ref: '#/components/schemas/BackupPhaseEnum'
+        autonomy_target_h:
+          type: number
+          format: double
+          maximum: 240.0
+          minimum: 0.0
     PatchedProjectRequest:
       type: object
       properties:
@@ -2826,6 +3028,257 @@ components:
           maxLength: 64
       required:
       - product
+    PowerApplyResult:
+      type: object
+      properties:
+        panel:
+          $ref: '#/components/schemas/Panel'
+        placements:
+          type: array
+          items:
+            $ref: '#/components/schemas/Placement'
+      required:
+      - panel
+      - placements
+    PowerCheck:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        description:
+          type: string
+        metrics:
+          $ref: '#/components/schemas/PowerMetrics'
+        findings:
+          type: array
+          items:
+            $ref: '#/components/schemas/PowerFinding'
+        components:
+          type: array
+          items:
+            $ref: '#/components/schemas/PowerComponent'
+        total_price:
+          type: string
+      required:
+      - components
+      - description
+      - findings
+      - metrics
+      - ok
+      - total_price
+    PowerComponent:
+      type: object
+      properties:
+        role:
+          type: string
+        kind:
+          type: string
+        poles:
+          type: integer
+        rated_a:
+          type: number
+          format: double
+        note:
+          type: string
+        qty:
+          type: integer
+        product:
+          allOf:
+          - $ref: '#/components/schemas/Product'
+          nullable: true
+        price_total:
+          type: string
+          nullable: true
+      required:
+      - kind
+      - note
+      - poles
+      - price_total
+      - product
+      - qty
+      - rated_a
+      - role
+    PowerFinding:
+      type: object
+      properties:
+        level:
+          $ref: '#/components/schemas/LevelEnum'
+        code:
+          type: string
+        message:
+          type: string
+      required:
+      - code
+      - level
+      - message
+    PowerMetrics:
+      type: object
+      properties:
+        p_backup_w:
+          type: number
+          format: double
+        s_backup_va:
+          type: number
+          format: double
+        p_start_w:
+          type: number
+          format: double
+        s_start_va:
+          type: number
+          format: double
+        phase_va:
+          type: object
+          additionalProperties:
+            type: number
+            format: double
+        i_backup_a:
+          type: number
+          format: double
+        imbalance_pct:
+          type: number
+          format: double
+        gen_required_kva:
+          type: number
+          format: double
+          nullable: true
+        gen_required_kw:
+          type: number
+          format: double
+          nullable: true
+        inverter_capacity_w:
+          type: number
+          format: double
+          nullable: true
+        inverter_required_w:
+          type: number
+          format: double
+          nullable: true
+        autonomy_h:
+          type: number
+          format: double
+          nullable: true
+        battery_dc_a:
+          type: number
+          format: double
+          nullable: true
+        battery_usable_kwh:
+          type: number
+          format: double
+          nullable: true
+      required:
+      - autonomy_h
+      - battery_dc_a
+      - battery_usable_kwh
+      - gen_required_kva
+      - gen_required_kw
+      - i_backup_a
+      - imbalance_pct
+      - inverter_capacity_w
+      - inverter_required_w
+      - p_backup_w
+      - p_start_w
+      - phase_va
+      - s_backup_va
+      - s_start_va
+    PowerSystem:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        project:
+          type: integer
+          readOnly: true
+        scenario:
+          $ref: '#/components/schemas/ScenarioEnum'
+        generator:
+          type: integer
+          nullable: true
+        inverter:
+          type: integer
+          nullable: true
+        inverter_count:
+          type: integer
+          maximum: 9
+          minimum: 1
+        inverter_mode:
+          $ref: '#/components/schemas/InverterModeEnum'
+        battery:
+          type: integer
+          nullable: true
+        battery_count:
+          type: integer
+          maximum: 64
+          minimum: 1
+        ats_kind:
+          $ref: '#/components/schemas/AtsKindEnum'
+        ats_poles:
+          type: integer
+          maximum: 4
+          minimum: 1
+        ats_rated_a:
+          type: integer
+          maximum: 1000
+          minimum: 0
+        mechanical_interlock:
+          type: boolean
+        electrical_interlock:
+          type: boolean
+        backup_phase:
+          $ref: '#/components/schemas/BackupPhaseEnum'
+        autonomy_target_h:
+          type: number
+          format: double
+          maximum: 240.0
+          minimum: 0.0
+      required:
+      - id
+      - project
+    PowerSystemRequest:
+      type: object
+      properties:
+        scenario:
+          $ref: '#/components/schemas/ScenarioEnum'
+        generator:
+          type: integer
+          nullable: true
+        inverter:
+          type: integer
+          nullable: true
+        inverter_count:
+          type: integer
+          maximum: 9
+          minimum: 1
+        inverter_mode:
+          $ref: '#/components/schemas/InverterModeEnum'
+        battery:
+          type: integer
+          nullable: true
+        battery_count:
+          type: integer
+          maximum: 64
+          minimum: 1
+        ats_kind:
+          $ref: '#/components/schemas/AtsKindEnum'
+        ats_poles:
+          type: integer
+          maximum: 4
+          minimum: 1
+        ats_rated_a:
+          type: integer
+          maximum: 1000
+          minimum: 0
+        mechanical_interlock:
+          type: boolean
+        electrical_interlock:
+          type: boolean
+        backup_phase:
+          $ref: '#/components/schemas/BackupPhaseEnum'
+        autonomy_target_h:
+          type: number
+          format: double
+          maximum: 240.0
+          minimum: 0.0
     Product:
       type: object
       properties:
@@ -3058,6 +3511,24 @@ components:
         * `A` - A
         * `F` - F
         * `B` - B
+    ScenarioEnum:
+      enum:
+      - grid_gen_ats
+      - grid_inverter
+      - grid_inverter_gen
+      - manual_i0ii
+      - grid3_gen1_phase
+      - grid3_gen1_combine
+      - grid1_gen1
+      type: string
+      description: |-
+        * `grid_gen_ats` - Сеть + генератор через АВР
+        * `grid_inverter` - Сеть + инвертор
+        * `grid_inverter_gen` - Сеть + инвертор + генератор
+        * `manual_i0ii` - Ручной переключатель I-0-II
+        * `grid3_gen1_phase` - 3ф сеть + 1ф генератор (одна фаза)
+        * `grid3_gen1_combine` - 3ф сеть + 1ф генератор (объединение фаз)
+        * `grid1_gen1` - 1ф сеть + 1ф генератор
     SpdEnum:
       enum:
       - none

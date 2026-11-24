@@ -21,6 +21,7 @@ interface Props {
   active: boolean;
   readOnly: boolean;
   showWires: boolean;
+  threePhase: boolean;
   enclosures: Product[];
   onActivate: () => void;
   onDeviceClick: (id: string, additive: boolean) => void;
@@ -60,6 +61,7 @@ export function PanelView({
   active,
   readOnly,
   showWires,
+  threePhase,
   enclosures,
   onActivate,
   onDeviceClick,
@@ -72,7 +74,10 @@ export function PanelView({
   const mine = hover && hover.panelId === panel.id ? hover : null;
   const mountW = (panel.area.width ?? 0) * MM_PX;
   const mountH = (panel.area.height ?? 0) * MM_PX;
-  const wires = useMemo(() => buildWires(panel, products, groups), [panel, products, groups]);
+  const wires = useMemo(
+    () => buildWires(panel, products, groups, threePhase),
+    [panel, products, groups, threePhase],
+  );
   const { setNodeRef: mountRef } = useDroppable({ id: `mount-${panel.id}` });
 
   const render = (d: Device) => (
