@@ -356,12 +356,9 @@ def test_components_for_single_phase_contactor_ats():
         ats=AtsSpec("contactor", 2, 32, mechanical_interlock=True, electrical_interlock=True),
     )
     c = by_role(r)
-    assert (c["ats"].kind, c["ats"].qty, c["ats"].poles, c["ats"].rated_a) == (
-        "contactor",
-        2,
-        2,
-        25,
-    )
+    ats = next(x for x in r.components if x.kind == "contactor")
+    assert (ats.qty, ats.poles, ats.rated_a) == (2, 2, 25)
+    assert any(x.kind == "interlock" for x in r.components)
     assert c["gen_in_breaker"].rated_a == 32  # 7 kVA / 230 V = 30.4 A
     assert c["gen_in_breaker"].poles == 2
     assert c["grid_in_breaker"].rated_a == 20  # 16.6 A
