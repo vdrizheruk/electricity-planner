@@ -129,7 +129,7 @@ def test_power_config_validation(auth, home):
 
 
 def test_power_endpoints_hide_foreign_projects(auth, other_client, home):
-    for url in (f"/power/", f"/power/check/"):
+    for url in ("/power/", "/power/check/"):
         assert other_client.get(f"{B}/projects/{home.pk}{url}").status_code == 404
     assert (
         other_client.patch(f"{B}/projects/{home.pk}/power/", {}, format="json").status_code == 404
