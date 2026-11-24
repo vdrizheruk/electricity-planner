@@ -1,6 +1,7 @@
 from typing import Any
 
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import transaction
 from rest_framework import serializers
 
 from calculations.models import ProjectCalculation
@@ -8,7 +9,7 @@ from catalog.models import Brand, Category, Product
 from panels.layout_db import enclosure_geometry, sync_rails
 from panels.models import DinRail, LayoutVersion, Placement
 from panels.services.layout import required_width
-from power.models import PowerSystem
+from power.models import PowerSystem, PvArray, PvSystem
 from projects.models import ConsumerGroup, Panel, PanelLink, Project
 
 PLACEABLE_GROUP_CATEGORIES = {"mcb", "rcbo", "rcd", "contactor"}
@@ -491,3 +492,111 @@ class PowerCheckSerializer(serializers.Serializer[None]):
 class PowerApplyResultSerializer(serializers.Serializer[None]):
     panel = PanelSerializer()
     placements = PlacementSerializer(many=True)
+
+
+# --------------------------------------------------------------------- pv
+class PvArraySerializer(serializers.ModelSerializer[PvArray]):
+    class Meta:
+        model = PvArray
+        fields = ["id", "mppt", "series", "strings", "azimuth_deg", "tilt_deg", "cable_m"]
+        read_only_fields = ["id"]
+        validators: list[Any] = []  # uniqueness is checked for the whole list
+
+
+class PvSystemSerializer(serializers.ModelSerializer[PvSystem]):
+    module = serializers.PrimaryKeyRelatedField(
+        queryset=Product.objects.filter(category__code="pv_module"),
+        allow_null=True,
+        required=False,
+    )
+    inverter = serializers.PrimaryKeyRelatedField(
+        queryset=Product.objects.filter(category__code="inverter"),
+        allow_null=True,
+        required=False,
+    )
+    arrays = PvArraySerializer(many=True, required=False)
+
+    class Meta:
+        model = PvSystem
+        fields = [
+            "id",
+            "project",
+            "module",
+            "inverter",
+            "inverter_count",
+            "t_min_c",
+            "t_cell_max_c",
+            "region",
+            "performance_ratio",
+            "export_limit_w",
+            "green_tariff",
+            "arrays",
+        ]
+        read_only_fields = ["id", "project"]
+
+    def validate_arrays(self, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        mppts = [a["mppt"] for a in value]
+        if len(mppts) != len(set(mppts)):
+            raise serializers.ValidationError("Один MPPT-вход указан дважды")
+        return value
+
+    def update(self, instance: PvSystem, validated_data: dict[str, Any]) -> PvSystem:
+        arrays = validated_data.pop("arrays", None)
+        with transaction.atomic():
+            instance = super().update(instance, validated_data)
+            if arrays is not None:
+                instance.arrays.all().delete()
+                PvArray.objects.bulk_create(PvArray(pv=instance, **a) for a in arrays)
+        return instance
+
+
+class PvArrayResultSerializer(serializers.Serializer[None]):
+    mppt = serializers.IntegerField()
+    modules = serializers.IntegerField()
+    kwp = serializers.FloatField()
+    voc_cold_v = serializers.FloatField()
+    vmp_stc_v = serializers.FloatField()
+    vmp_hot_v = serializers.FloatField()
+    vmp_cold_v = serializers.FloatField()
+    isc_a = serializers.FloatField()
+    imp_a = serializers.FloatField()
+    fuse_a = serializers.FloatField(allow_null=True)
+    cable_mm2 = serializers.IntegerField()
+    drop_pct = serializers.FloatField()
+    yield_kwh = serializers.FloatField()
+
+
+class PvMetricsSerializer(serializers.Serializer[None]):
+    modules = serializers.IntegerField()
+    kwp = serializers.FloatField()
+    p_ac_w = serializers.FloatField()
+    dc_ac_ratio = serializers.FloatField()
+    clip_loss_pct = serializers.FloatField()
+    yield_kwh_year = serializers.FloatField()
+    specific_yield = serializers.FloatField()
+    ac_breaker_a = serializers.FloatField()
+
+
+class PvComponentSerializer(serializers.Serializer[None]):
+    role = serializers.CharField()
+    kind = serializers.CharField()
+    qty = serializers.IntegerField()
+    poles = serializers.IntegerField()
+    rated_a = serializers.FloatField()
+    vdc_v = serializers.FloatField()
+    mm2 = serializers.IntegerField()
+    placed = serializers.BooleanField()
+    note = serializers.CharField()
+    product = ProductSerializer(allow_null=True)
+    price_total = serializers.CharField(allow_null=True)
+
+
+class PvCheckSerializer(serializers.Serializer[None]):
+    configured = serializers.BooleanField()
+    ok = serializers.BooleanField()
+    description = serializers.CharField()
+    metrics = PvMetricsSerializer(allow_null=True)
+    arrays = PvArrayResultSerializer(many=True)
+    findings = PowerFindingSerializer(many=True)
+    components = PvComponentSerializer(many=True)
+    total_price = serializers.CharField()

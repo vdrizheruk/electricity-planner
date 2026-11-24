@@ -632,6 +632,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{id}/pv/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description PV configuration of the project (created empty on first use). */
+        get: operations["projects_pv_retrieve"];
+        put: operations["projects_pv_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["projects_pv_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/projects/{id}/pv/apply/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Create (or rebuild) the DC box panel from the checked PV configuration. */
+        post: operations["projects_pv_apply_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{id}/pv/check/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description String, voltage, current, cable and yield checks plus the bill of the PV system. */
+        get: operations["projects_pv_check_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{project_pk}/groups/": {
         parameters: {
             query?: never;
@@ -1284,6 +1335,21 @@ export interface components {
             /** Tmin для PV, °C */
             tmin_c?: number;
         };
+        PatchedPvSystemRequest: {
+            module?: number | null;
+            inverter?: number | null;
+            inverter_count?: number;
+            /** Format: double */
+            t_min_c?: number;
+            /** Format: double */
+            t_cell_max_c?: number;
+            region?: components["schemas"]["RegionEnum"];
+            /** Format: double */
+            performance_ratio?: number;
+            export_limit_w?: number;
+            green_tariff?: boolean;
+            arrays?: components["schemas"]["PvArrayRequest"][];
+        };
         PatchedUserRequest: {
             language?: components["schemas"]["LanguageEnum"];
         };
@@ -1505,6 +1571,128 @@ export interface components {
             /** Tmin для PV, °C */
             tmin_c?: number;
         };
+        PvArray: {
+            readonly id: number;
+            mppt: number;
+            series?: number;
+            strings?: number;
+            /** Format: double */
+            azimuth_deg?: number;
+            /** Format: double */
+            tilt_deg?: number;
+            /** Format: double */
+            cable_m?: number;
+        };
+        PvArrayRequest: {
+            mppt: number;
+            series?: number;
+            strings?: number;
+            /** Format: double */
+            azimuth_deg?: number;
+            /** Format: double */
+            tilt_deg?: number;
+            /** Format: double */
+            cable_m?: number;
+        };
+        PvArrayResult: {
+            mppt: number;
+            modules: number;
+            /** Format: double */
+            kwp: number;
+            /** Format: double */
+            voc_cold_v: number;
+            /** Format: double */
+            vmp_stc_v: number;
+            /** Format: double */
+            vmp_hot_v: number;
+            /** Format: double */
+            vmp_cold_v: number;
+            /** Format: double */
+            isc_a: number;
+            /** Format: double */
+            imp_a: number;
+            /** Format: double */
+            fuse_a: number | null;
+            cable_mm2: number;
+            /** Format: double */
+            drop_pct: number;
+            /** Format: double */
+            yield_kwh: number;
+        };
+        PvCheck: {
+            configured: boolean;
+            ok: boolean;
+            description: string;
+            metrics: components["schemas"]["PvMetrics"] | null;
+            arrays: components["schemas"]["PvArrayResult"][];
+            findings: components["schemas"]["PowerFinding"][];
+            components: components["schemas"]["PvComponent"][];
+            total_price: string;
+        };
+        PvComponent: {
+            role: string;
+            kind: string;
+            qty: number;
+            poles: number;
+            /** Format: double */
+            rated_a: number;
+            /** Format: double */
+            vdc_v: number;
+            mm2: number;
+            placed: boolean;
+            note: string;
+            product: components["schemas"]["Product"] | null;
+            price_total: string | null;
+        };
+        PvMetrics: {
+            modules: number;
+            /** Format: double */
+            kwp: number;
+            /** Format: double */
+            p_ac_w: number;
+            /** Format: double */
+            dc_ac_ratio: number;
+            /** Format: double */
+            clip_loss_pct: number;
+            /** Format: double */
+            yield_kwh_year: number;
+            /** Format: double */
+            specific_yield: number;
+            /** Format: double */
+            ac_breaker_a: number;
+        };
+        PvSystem: {
+            readonly id: number;
+            readonly project: number;
+            module?: number | null;
+            inverter?: number | null;
+            inverter_count?: number;
+            /** Format: double */
+            t_min_c?: number;
+            /** Format: double */
+            t_cell_max_c?: number;
+            region?: components["schemas"]["RegionEnum"];
+            /** Format: double */
+            performance_ratio?: number;
+            export_limit_w?: number;
+            green_tariff?: boolean;
+            arrays?: components["schemas"]["PvArray"][];
+        };
+        PvSystemRequest: {
+            module?: number | null;
+            inverter?: number | null;
+            inverter_count?: number;
+            /** Format: double */
+            t_min_c?: number;
+            /** Format: double */
+            t_cell_max_c?: number;
+            region?: components["schemas"]["RegionEnum"];
+            /** Format: double */
+            performance_ratio?: number;
+            export_limit_w?: number;
+            green_tariff?: boolean;
+            arrays?: components["schemas"]["PvArrayRequest"][];
+        };
         Rcd: {
             id: number;
             phase: string;
@@ -1525,6 +1713,13 @@ export interface components {
          * @enum {string}
          */
         RcdTypeEnum: "AC" | "A" | "F" | "B";
+        /**
+         * @description * `north` - Север
+         *     * `center` - Центр
+         *     * `south` - Юг
+         * @enum {string}
+         */
+        RegionEnum: "north" | "center" | "south";
         /**
          * @description * `grid_gen_ats` - Сеть + генератор через АВР
          *     * `grid_inverter` - Сеть + инвертор
@@ -2817,6 +3012,123 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PowerCheck"];
+                };
+            };
+        };
+    };
+    projects_pv_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PvSystem"];
+                };
+            };
+        };
+    };
+    projects_pv_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PvSystemRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PvSystemRequest"];
+                "multipart/form-data": components["schemas"]["PvSystemRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PvSystem"];
+                };
+            };
+        };
+    };
+    projects_pv_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedPvSystemRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedPvSystemRequest"];
+                "multipart/form-data": components["schemas"]["PatchedPvSystemRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PvSystem"];
+                };
+            };
+        };
+    };
+    projects_pv_apply_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PowerApplyResult"];
+                };
+            };
+        };
+    };
+    projects_pv_check_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PvCheck"];
                 };
             };
         };

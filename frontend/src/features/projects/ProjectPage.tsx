@@ -47,6 +47,9 @@ export function ProjectPage() {
         <Link className="btn" data-testid="power-link" to={`/projects/${id}/power`}>
           {t('power.open')}
         </Link>
+        <Link className="btn" data-testid="pv-link" to={`/projects/${id}/pv`}>
+          {t('pv.open')}
+        </Link>
         <Link className="btn btn-primary" to={`/projects/${id}/board`}>
           {t('project.editor')}
         </Link>

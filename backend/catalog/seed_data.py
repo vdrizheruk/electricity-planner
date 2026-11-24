@@ -829,6 +829,7 @@ def _power() -> list[Item]:
                     imp_a=imp,
                     beta_voc_pct_per_c=-0.25,
                     beta_vmp_pct_per_c=-0.30,
+                    max_series_fuse_a=25,
                     cells=cells,
                 ),
             )
@@ -849,6 +850,38 @@ def _power() -> list[Item]:
             "Предохранитель gPV 10×38 20А 1000В DC",
             125.0,
             dict(rated_a=20, vdc_max=1000),
+        ),
+        (
+            "ABB",
+            C.DC_FUSE,
+            "E9F-PV-10",
+            "Предохранитель gPV 10×38 10А 1000В DC",
+            115.0,
+            dict(rated_a=10, vdc_max=1000),
+        ),
+        (
+            "ABB",
+            C.DC_FUSE,
+            "E9F-PV-25",
+            "Предохранитель gPV 10×38 25А 1000В DC",
+            135.0,
+            dict(rated_a=25, vdc_max=1000),
+        ),
+        (
+            "ABB",
+            C.DC_FUSE,
+            "E9F-PV-30",
+            "Предохранитель gPV 10×38 30А 1000В DC",
+            140.0,
+            dict(rated_a=30, vdc_max=1000),
+        ),
+        (
+            "ABB",
+            C.DC_ISOLATOR,
+            "OTDC32-4S",
+            "DC-разъединитель 4 строки 1000В 32А",
+            6200.0,
+            dict(rated_a=32, vdc_max=1000, strings=4),
         ),
         (
             "ABB",
@@ -908,6 +941,7 @@ def _power() -> list[Item]:
         ),
         ("E.NEXT", C.CABLE, "e.pv1f.4", "Кабель PV1-F 4 мм² (м)", 48.0, dict(mm2=4, pv=True)),
         ("E.NEXT", C.CABLE, "e.pv1f.6", "Кабель PV1-F 6 мм² (м)", 68.0, dict(mm2=6, pv=True)),
+        ("E.NEXT", C.CABLE, "e.pv1f.10", "Кабель PV1-F 10 мм² (м)", 112.0, dict(mm2=10, pv=True)),
     ]
     for brand, cat, sku, name, price, el in dc:
         rated = el.get("rated_a")
@@ -920,9 +954,9 @@ def _power() -> list[Item]:
                 price,
                 rated_a=rated,
                 poles={"S804PV-S32": 4, "iC60N-DC-2P-C125": 2}.get(sku),
-                modules=1.0
-                if cat == C.DC_FUSE
-                else (4 if cat in (C.DC_ISOLATOR, C.DC_BREAKER) else 0),
+                modules={C.DC_FUSE: 1.0, C.DC_SPD: 2.0, C.DC_ISOLATOR: 4.0, C.DC_BREAKER: 4.0}.get(
+                    cat, 0
+                ),
                 electrical=el,
             )
         )

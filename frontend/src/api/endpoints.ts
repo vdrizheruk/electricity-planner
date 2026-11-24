@@ -15,6 +15,9 @@ export type AutolayoutOptions = S['AutolayoutOptionsRequest'];
 export type PowerSystem = S['PowerSystem'];
 export type PowerCheck = S['PowerCheck'];
 export type PowerApplyResult = S['PowerApplyResult'];
+export type PvSystem = S['PvSystem'];
+export type PvArrayDto = S['PvArray'];
+export type PvCheck = S['PvCheck'];
 export type BulkItem = S['BulkPlacementItemRequest'];
 
 export const auth = {
@@ -79,4 +82,12 @@ export const power = {
     api.patch<PowerSystem>(`/projects/${projectId}/power/`, data),
   check: (projectId: number) => api.get<PowerCheck>(`/projects/${projectId}/power/check/`),
   apply: (projectId: number) => api.post<PowerApplyResult>(`/projects/${projectId}/power/apply/`),
+};
+
+export const pv = {
+  get: (projectId: number) => api.get<PvSystem>(`/projects/${projectId}/pv/`),
+  update: (projectId: number, data: Partial<PvSystem>) =>
+    api.patch<PvSystem>(`/projects/${projectId}/pv/`, data),
+  check: (projectId: number) => api.get<PvCheck>(`/projects/${projectId}/pv/check/`),
+  apply: (projectId: number) => api.post<PowerApplyResult>(`/projects/${projectId}/pv/apply/`),
 };
