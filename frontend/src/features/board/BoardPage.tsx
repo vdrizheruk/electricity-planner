@@ -23,6 +23,7 @@ import { BomView, IssuesView, Properties } from './components/Sidebar';
 import { UnplacedList } from './components/UnplacedList';
 import { probe, type DragData } from './dragTarget';
 import { createAutosaver, type Autosaver } from './model/autosave';
+import { createPositionsSaver } from './model/positionsSaver';
 import { buildDiagram } from './model/diagram';
 import { diagramToSvg } from './model/diagramSvg';
 import { boardToSvg } from './model/exportSvg';
@@ -58,6 +59,7 @@ export function BoardPage() {
   const projectId = Number(useParams().id);
   const store = useRef<BoardStore>(createBoardStore()).current;
   const saver = useRef<Autosaver | null>(null);
+  const positionsSaver = useRef<{ stop(): void; flush(): Promise<void> } | null>(null);
   const narrow = useIsNarrow();
   const readOnly = narrow;
 
@@ -67,6 +69,7 @@ export function BoardPage() {
   const [hover, setHover] = useState<Hover>(null);
   const [drag, setDrag] = useState<DragData | null>(null);
   const [toast, setToast] = useState('');
+  const [showWires, setShowWires] = useState(true);
   const [mode, setMode] = useState<'board' | 'diagram'>('board');
   const [dialog, setDialog] = useState<'autolayout' | 'versions' | null>(null);
   const [marquee, setMarquee] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(
@@ -94,6 +97,10 @@ export function BoardPage() {
     setActiveId((cur) => cur ?? b.panels[0]?.id ?? null);
     saver.current?.stop();
     saver.current = createAutosaver(store, savePanel);
+    positionsSaver.current?.stop();
+    positionsSaver.current = createPositionsSaver(store, async (id, positions) => {
+      await panelsApi.update(id, { diagram_positions: positions });
+    });
     setReady(true);
   }, [projectId, store]);
 
@@ -101,6 +108,7 @@ export function BoardPage() {
     void load();
     return () => {
       saver.current?.stop();
+      void positionsSaver.current?.flush().then(() => positionsSaver.current?.stop());
     };
   }, [load]);
 
@@ -532,6 +540,30 @@ export function BoardPage() {
           <button className="btn" disabled={!active} onClick={exportLabels}>
             {t('board.exportLabels')}
           </button>
+          <label className="flex items-center gap-1 text-sm">
+            <input
+              type="checkbox"
+              data-testid="toggle-wires"
+              checked={showWires}
+              onChange={(e) => setShowWires(e.target.checked)}
+            />
+            {t('board.wires')}
+            <span className="ml-1 inline-flex items-center gap-1 text-[11px]">
+              <i className="inline-block h-1 w-4 bg-red-600" /> L
+              <i className="inline-block h-1 w-4 bg-blue-600" /> N
+              <i className="inline-block h-1 w-4 bg-yellow-400" /> PE
+            </span>
+          </label>
+          {mode === 'diagram' && (
+            <button
+              className="btn"
+              data-testid="reset-layout"
+              disabled={!active}
+              onClick={() => active && store.getState().resetNodePositions(active.id)}
+            >
+              {t('board.resetLayout')}
+            </button>
+          )}
           {!readOnly && <Trash label={t('board.trash')} />}
           <span
             data-testid="save-state"
@@ -584,6 +616,7 @@ export function BoardPage() {
                       hover={hover}
                       active={active?.id === p.id}
                       readOnly={readOnly}
+                      showWires={showWires}
                       enclosures={enclosures}
                       onActivate={() => setActiveId(p.id)}
                       onDeviceClick={(id, add) =>

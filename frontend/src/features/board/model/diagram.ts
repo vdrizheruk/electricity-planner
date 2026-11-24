@@ -103,6 +103,7 @@ export function buildDiagram(
   panel: PanelModel,
   products: Map<number, Product>,
   groups: Group[],
+  positions: PanelModel['diagramPositions'] = panel.diagramPositions,
 ): Diagram {
   const tags = designations(panel, products);
   const groupById = new Map(groups.map((g) => [g.id, g]));
@@ -210,6 +211,13 @@ export function buildDiagram(
     nodes.push(make(d, 'other', colX(col), ROW_H));
     link('bus', d.id);
     col += 1;
+  }
+  for (const n of nodes) {
+    const o = positions[n.id];
+    if (o) {
+      n.x = o.x;
+      n.y = o.y;
+    }
   }
   return { nodes, edges };
 }

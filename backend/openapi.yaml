@@ -2482,6 +2482,7 @@ components:
           minimum: 0
         mounting:
           $ref: '#/components/schemas/MountingEnum'
+        diagram_positions: {}
         rails:
           type: array
           items:
@@ -2551,6 +2552,7 @@ components:
           minimum: 0
         mounting:
           $ref: '#/components/schemas/MountingEnum'
+        diagram_positions: {}
       required:
       - name
     PatchedBulkPlacementsRequest:
@@ -2616,6 +2618,7 @@ components:
           minimum: 0
         mounting:
           $ref: '#/components/schemas/MountingEnum'
+        diagram_positions: {}
     PatchedPlacementRequest:
       type: object
       properties:

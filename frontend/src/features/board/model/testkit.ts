@@ -28,6 +28,7 @@ export function panel(over: Partial<PanelModel> = {}): PanelModel {
     rails: [{ id: 1, rowIndex: 0, capacity: 12 }],
     area: { width: 210, height: 300 },
     devices: [],
+    diagramPositions: {},
     ...over,
   };
 }

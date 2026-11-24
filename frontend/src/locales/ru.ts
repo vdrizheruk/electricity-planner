@@ -61,6 +61,8 @@ export const ru = {
     zoomOut: 'Уменьшить',
     zoomReset: 'Сброс',
     exportSvg: 'SVG',
+    wires: 'Провода',
+    resetLayout: 'Сбросить схему',
     exportLabels: 'Наклейки',
     view: { board: 'Щит', diagram: 'Схема' },
     exportPng: 'PNG',

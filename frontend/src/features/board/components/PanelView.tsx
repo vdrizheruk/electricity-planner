@@ -2,6 +2,8 @@ import { useDroppable } from '@dnd-kit/core';
 import { useTranslation } from 'react-i18next';
 import { freeModules, MM_PX, MODULE_PX, RAIL_HEIGHT_PX } from '../model/geometry';
 import type { Device, Group, Issue, PanelModel, Product } from '../model/types';
+import { buildWires, WIRE_GAP, wiresToSvg } from '../model/wires';
+import { useMemo } from 'react';
 import { DeviceView } from './DeviceView';
 
 export type Hover =
@@ -18,6 +20,7 @@ interface Props {
   hover: Hover;
   active: boolean;
   readOnly: boolean;
+  showWires: boolean;
   enclosures: Product[];
   onActivate: () => void;
   onDeviceClick: (id: string, additive: boolean) => void;
@@ -56,6 +59,7 @@ export function PanelView({
   hover,
   active,
   readOnly,
+  showWires,
   enclosures,
   onActivate,
   onDeviceClick,
@@ -68,6 +72,7 @@ export function PanelView({
   const mine = hover && hover.panelId === panel.id ? hover : null;
   const mountW = (panel.area.width ?? 0) * MM_PX;
   const mountH = (panel.area.height ?? 0) * MM_PX;
+  const wires = useMemo(() => buildWires(panel, products, groups), [panel, products, groups]);
   const { setNodeRef: mountRef } = useDroppable({ id: `mount-${panel.id}` });
 
   const render = (d: Device) => (
@@ -114,7 +119,10 @@ export function PanelView({
         )}
       </header>
       <div className="flex items-start gap-4">
-        <div className="flex flex-col gap-3">
+        <div
+          className="relative flex flex-col"
+          style={{ gap: WIRE_GAP, paddingTop: WIRE_GAP, paddingBottom: WIRE_GAP }}
+        >
           {rails.map((r) => (
             <RailRow key={r.id} panelId={panel.id} rail={r}>
               {panel.devices.filter((d) => d.railId === r.id).map(render)}
@@ -129,6 +137,15 @@ export function PanelView({
               )}
             </RailRow>
           ))}
+          {showWires && (
+            <svg
+              data-testid="wires"
+              className="pointer-events-none absolute left-0 top-0 z-10"
+              width={wires.width}
+              height={wires.height}
+              dangerouslySetInnerHTML={{ __html: wiresToSvg(wires) }}
+            />
+          )}
         </div>
         {mountW > 0 && (
           <div>

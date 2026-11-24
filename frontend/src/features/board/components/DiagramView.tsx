@@ -68,7 +68,7 @@ export function DiagramView({ store, panelId }: { store: BoardStore; panelId: nu
     position: { x: n.x, y: n.y },
     data: { node: n, unbound: n.kind === 'breaker' && n.groupId === null },
     selected: selection.includes(n.id),
-    draggable: false,
+    draggable: true,
     connectable: false,
     deletable: n.deviceId !== null,
   }));
@@ -81,7 +81,7 @@ export function DiagramView({ store, panelId }: { store: BoardStore; panelId: nu
         edges={edges}
         nodeTypes={nodeTypes}
         fitView
-        nodesDraggable={false}
+        nodesDraggable
         nodesConnectable={false}
         elementsSelectable
         deleteKeyCode={null}
@@ -91,6 +91,12 @@ export function DiagramView({ store, panelId }: { store: BoardStore; panelId: nu
               .getState()
               .select(n.id, e.shiftKey || e.ctrlKey || e.metaKey ? 'toggle' : 'replace');
         }}
+        onNodeDragStop={(_e, n) =>
+          store.getState().setNodePosition(panelId, n.id, {
+            x: Math.round(n.position.x),
+            y: Math.round(n.position.y),
+          })
+        }
         onPaneClick={() => store.getState().clearSelection()}
         proOptions={{ hideAttribution: true }}
       >

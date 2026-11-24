@@ -36,6 +36,7 @@ export function panelToModel(
     rails: p.rails.map((r) => ({ id: r.id, rowIndex: r.row_index, capacity: r.capacity_modules })),
     area: { width: area?.width ?? null, height: area?.height ?? null },
     devices,
+    diagramPositions: (p.diagram_positions ?? {}) as PanelModel['diagramPositions'],
   };
 }
 

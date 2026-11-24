@@ -59,6 +59,9 @@ export interface BoardState {
   markSaved(panelId: number, sent: { id: string; serverId: number }[]): void;
   setSave(state: SaveState, error?: string): void;
   setView(view: Partial<BoardState['view']>): void;
+  /** Manual diagram layout: no undo history, persisted by the positions saver. */
+  setNodePosition(panelId: number, nodeId: string, pos: { x: number; y: number }): void;
+  resetNodePositions(panelId: number): void;
 }
 
 export type BoardStore = StoreApi<BoardState>;
@@ -467,6 +470,25 @@ export function createBoardStore(): BoardStore {
 
       setSave(state, error) {
         set({ save: error ? { state, error } : { state } });
+      },
+
+      setNodePosition(panelId, nodeId, pos) {
+        const s = get();
+        const cur = s.panels[panelId];
+        if (!cur) return;
+        set({
+          panels: {
+            ...s.panels,
+            [panelId]: { ...cur, diagramPositions: { ...cur.diagramPositions, [nodeId]: pos } },
+          },
+        });
+      },
+
+      resetNodePositions(panelId) {
+        const s = get();
+        const cur = s.panels[panelId];
+        if (!cur) return;
+        set({ panels: { ...s.panels, [panelId]: { ...cur, diagramPositions: {} } } });
       },
 
       setView(view) {
