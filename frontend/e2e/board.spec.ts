@@ -200,6 +200,33 @@ test.describe('board editor', () => {
     });
   });
 
+  test('power simulation lights up the board and the diagram, grid loss darkens it', async ({
+    page,
+  }) => {
+    await page.getByRole('button', { name: 'Автокомпоновка' }).click();
+    await page.getByRole('button', { name: 'Выполнить' }).click();
+    await expect(page.getByRole('dialog')).toHaveCount(0, { timeout: 15_000 });
+    await page.getByTestId('toggle-sim').check();
+    await expect(page.getByTestId('sim-panel')).toBeVisible();
+    await expect(page.locator('[data-testid="device"][data-power="on"]').first()).toBeVisible();
+    await expect(page.locator('[data-testid="device"][data-power="off"]')).toHaveCount(0);
+
+    await page.getByTestId('sim-grid').uncheck();
+    await expect(page.locator('[data-testid="device"][data-power="on"]')).toHaveCount(0);
+    await expect(page.locator('[data-testid="device"][data-power="off"]').first()).toBeVisible();
+    await expect(page.getByTestId('sim-summary')).toContainText('Обесточено');
+
+    await page.getByTestId('tab-diagram').click();
+    await expect(
+      page.locator('[data-testid="diagram-node"][data-power="off"]').first(),
+    ).toBeVisible();
+    await page.getByTestId('sim-grid').check();
+    await expect(
+      page.locator('[data-testid="diagram-node"][data-power="on"]').first(),
+    ).toBeVisible();
+    await expect(page.getByTestId('feeder-source')).toContainText('grid');
+  });
+
   test('single-line diagram mirrors the board both ways', async ({ page }) => {
     await page.getByRole('button', { name: 'Автокомпоновка' }).click();
     await page.getByRole('button', { name: 'Выполнить' }).click();

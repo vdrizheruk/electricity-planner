@@ -13,11 +13,22 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
-import { bomApi, groups as groupsApi, panels as panelsApi } from '../../api/endpoints';
+import {
+  bomApi,
+  groups as groupsApi,
+  panels as panelsApi,
+  power as powerApi,
+  pv as pvApi,
+  type SimResult,
+  type SimSwitches,
+} from '../../api/endpoints';
 import { saveBlob } from '../../shared/saveBlob';
 import { toCents, type BomExtra } from './model/bom';
 import { loadBoard, reloadPanel, savePanel } from './api';
 import { DiagramView } from './components/DiagramView';
+import { SimPanel } from './components/SimPanel';
+import { deviceStates } from './model/energize';
+import { buildDiagram } from './model/diagram';
 import { AutolayoutDialog, VersionsDialog } from './components/Dialogs';
 import { PanelView, type Hover } from './components/PanelView';
 import { Palette } from './components/Palette';
@@ -26,7 +37,6 @@ import { UnplacedList } from './components/UnplacedList';
 import { probe, type DragData } from './dragTarget';
 import { createAutosaver, type Autosaver } from './model/autosave';
 import { createPositionsSaver } from './model/positionsSaver';
-import { buildDiagram } from './model/diagram';
 import { diagramToSvg } from './model/diagramSvg';
 import { boardToSvg } from './model/exportSvg';
 import { PHASE_COLOR } from './model/wires';
@@ -74,6 +84,18 @@ export function BoardPage() {
   const [toast, setToast] = useState('');
   const [threePhase, setThreePhase] = useState(false);
   const [showWires, setShowWires] = useState(true);
+  const [simOn, setSimOn] = useState(false);
+  const [simSw, setSimSw] = useState<SimSwitches>({
+    grid: true,
+    generator: false,
+    inverter: true,
+    pv: false,
+    position: 'auto',
+    pv_pct: 70,
+  });
+  const [sim, setSim] = useState<SimResult | null>(null);
+  const [simError, setSimError] = useState('');
+  const [simHas, setSimHas] = useState({ gen: true, inv: true, pv: true });
   const [mode, setMode] = useState<'board' | 'diagram'>('board');
   const [dialog, setDialog] = useState<'autolayout' | 'versions' | null>(null);
   const [marquee, setMarquee] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(
@@ -151,6 +173,44 @@ export function BoardPage() {
     () => order.map((id) => panels[id]).filter((p) => p !== undefined),
     [order, panels],
   );
+
+  // Power simulation: one request per change of the switches or of the saved groups.
+  useEffect(() => {
+    if (!simOn) {
+      setSim(null);
+      return;
+    }
+    let live = true;
+    const timer = setTimeout(() => {
+      powerApi
+        .simulate(projectId, simSw)
+        .then((r) => {
+          if (!live) return;
+          setSim(r);
+          setSimError('');
+        })
+        .catch(() => live && setSimError(t('common.error', 'Ошибка')));
+    }, 150);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [simOn, simSw, groups, projectId, t]);
+  useEffect(() => {
+    if (!simOn) return;
+    void Promise.all([powerApi.get(projectId), pvApi.get(projectId)])
+      .then(([p, v]) =>
+        setSimHas({ gen: !!p.generator, inv: !!p.inverter, pv: !!(v.module && v.inverter) }),
+      )
+      .catch(() => undefined);
+  }, [simOn, projectId]);
+  const powerByPanel = useMemo(() => {
+    const out = new Map<number, ReturnType<typeof deviceStates>>();
+    if (sim)
+      for (const p of panelList)
+        out.set(p.id, deviceStates(p, buildDiagram(p, products, groups), sim));
+    return out;
+  }, [sim, panelList, products, groups]);
   const productList = useMemo(() => [...products.values()], [products]);
   const enclosures = useMemo(
     () => productList.filter((p) => p.category.code === 'enclosure'),
@@ -598,6 +658,15 @@ export function BoardPage() {
               <i className="inline-block h-1 w-4 bg-yellow-400" /> PE
             </span>
           </label>
+          <label className="flex items-center gap-1 text-sm">
+            <input
+              type="checkbox"
+              data-testid="toggle-sim"
+              checked={simOn}
+              onChange={(e) => setSimOn(e.target.checked)}
+            />
+            {t('board.sim.toggle')}
+          </label>
           {mode === 'diagram' && (
             <button
               className="btn"
@@ -618,6 +687,17 @@ export function BoardPage() {
             {saveLabel}
           </span>
         </div>
+        {simOn && (
+          <SimPanel
+            switches={simSw}
+            onChange={setSimSw}
+            result={sim}
+            error={simError}
+            hasGenerator={simHas.gen}
+            hasInverter={simHas.inv}
+            hasPv={simHas.pv}
+          />
+        )}
         {readOnly && <div className="bg-amber-100 px-3 py-1 text-sm">{t('board.readonly')}</div>}
         <div className="flex min-h-0 flex-1">
           {!readOnly && (
@@ -628,7 +708,7 @@ export function BoardPage() {
           )}
           {mode === 'diagram' && active ? (
             <div className="min-w-0 flex-1 bg-slate-50">
-              <DiagramView store={store} panelId={active.id} />
+              <DiagramView store={store} panelId={active.id} sim={sim} />
             </div>
           ) : (
             <div
@@ -663,6 +743,7 @@ export function BoardPage() {
                       showWires={showWires}
                       threePhase={threePhase}
                       enclosures={enclosures}
+                      energized={powerByPanel.get(p.id) ?? null}
                       onActivate={() => setActiveId(p.id)}
                       onDeviceClick={(id, add) =>
                         store.getState().select(id, add ? 'toggle' : 'replace')

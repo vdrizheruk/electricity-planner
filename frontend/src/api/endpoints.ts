@@ -14,6 +14,15 @@ export type AutolayoutResult = S['AutolayoutResult'];
 export type AutolayoutOptions = S['AutolayoutOptionsRequest'];
 export type PowerSystem = S['PowerSystem'];
 export type PowerCheck = S['PowerCheck'];
+export type SimResult = S['SimResult'];
+export interface SimSwitches {
+  grid: boolean;
+  generator: boolean;
+  inverter: boolean;
+  pv: boolean;
+  position: 'auto' | 'grid' | 'gen' | 'off';
+  pv_pct: number;
+}
 export type PowerApplyResult = S['PowerApplyResult'];
 export type PvSystem = S['PvSystem'];
 export type PvArrayDto = S['PvArray'];
@@ -85,6 +94,12 @@ export const power = {
     api.patch<PowerSystem>(`/projects/${projectId}/power/`, data),
   check: (projectId: number) => api.get<PowerCheck>(`/projects/${projectId}/power/check/`),
   apply: (projectId: number) => api.post<PowerApplyResult>(`/projects/${projectId}/power/apply/`),
+  simulate: (projectId: number, sw: SimSwitches) =>
+    api.get<SimResult>(
+      `/projects/${projectId}/power/simulate/?${new URLSearchParams(
+        Object.entries(sw).map(([k, v]) => [k, String(v)]),
+      ).toString()}`,
+    ),
 };
 
 export const pv = {

@@ -683,6 +683,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{id}/power/simulate/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Static power simulation for the given switch positions (query parameters). */
+        get: operations["projects_power_simulate_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{id}/pv/": {
         parameters: {
             query?: never;
@@ -1834,6 +1851,57 @@ export interface components {
          * @enum {string}
          */
         ScenarioEnum: "grid_gen_ats" | "grid_inverter" | "grid_inverter_gen" | "manual_i0ii" | "grid3_gen1_phase" | "grid3_gen1_combine" | "grid1_gen1";
+        SimGroup: {
+            id: number;
+            name: string;
+            backed_up: boolean;
+            powered: boolean;
+            source: string | null;
+            reason: string;
+            phase: string;
+            /** Format: double */
+            power_w: number;
+        };
+        SimResult: {
+            backup_source: string | null;
+            main_source: string | null;
+            ats_state: string;
+            groups: components["schemas"]["SimGroup"][];
+            sources: components["schemas"]["SimSource"][];
+            findings: components["schemas"]["PowerFinding"][];
+            /** Format: double */
+            interruption_s: number | null;
+            /** Format: double */
+            pv_w: number;
+            /** Format: double */
+            grid_import_w: number;
+            /** Format: double */
+            grid_export_w: number;
+            /** Format: double */
+            battery_net_w: number;
+            /** Format: double */
+            autonomy_h: number | null;
+            /** Format: double */
+            powered_w: number;
+            /** Format: double */
+            dark_w: number;
+        };
+        SimSource: {
+            name: string;
+            on: boolean;
+            role: string;
+            /** Format: double */
+            load_w: number;
+            /** Format: double */
+            load_va: number;
+            /** Format: double */
+            current_a: number;
+            /** Format: double */
+            rating_va: number | null;
+            /** Format: double */
+            utilization_pct: number | null;
+            note: string;
+        };
         /**
          * @description * `none` - none
          *     * `2` - 2
@@ -3205,6 +3273,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PowerCheck"];
+                };
+            };
+        };
+    };
+    projects_power_simulate_retrieve: {
+        parameters: {
+            query?: {
+                generator?: boolean;
+                grid?: boolean;
+                inverter?: boolean;
+                /**
+                 * @description * `auto` - auto
+                 *     * `grid` - grid
+                 *     * `gen` - gen
+                 *     * `off` - off
+                 */
+                position?: "auto" | "grid" | "gen" | "off";
+                pv?: boolean;
+                pv_pct?: number;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SimResult"];
                 };
             };
         };

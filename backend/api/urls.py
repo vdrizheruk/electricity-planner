@@ -31,6 +31,7 @@ urlpatterns = [
     path("projects/<int:pk>/bom/", export_views.BomView.as_view()),
     path("projects/<int:pk>/export/xlsx/", export_views.XlsxExportView.as_view()),
     path("projects/<int:pk>/export/pdf/", export_views.PdfExportView.as_view()),
+    path("projects/<int:pk>/power/simulate/", power_views.SimulateView.as_view()),
     path("projects/<int:pk>/pv/", power_views.PvView.as_view()),
     path("projects/<int:pk>/pv/check/", power_views.PvCheckView.as_view()),
     path("projects/<int:pk>/pv/apply/", power_views.PvApplyView.as_view()),

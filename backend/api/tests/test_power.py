@@ -208,3 +208,36 @@ def test_catalog_has_switching_equipment(seeded):
     ).exists()
     assert Product.objects.filter(category__code="ats", electrical__manual=True, poles=4).exists()
     assert Product.objects.filter(category__code="generator", electrical__phases=3).count() >= 2
+
+
+def sim(auth, project, **q):
+    r = auth.get(f"{B}/projects/{project.pk}/power/simulate/", q)
+    assert r.status_code == 200, r.json()
+    return r.json()
+
+
+def test_simulate_grid_on_all_groups_powered(auth, home):
+    body = sim(auth, home)
+    assert all(g["powered"] for g in body["groups"]) and body["dark_w"] == 0
+
+
+def test_simulate_grid_lost_with_generator_on_ats(auth, home):
+    cfg(
+        auth,
+        home,
+        generator=sku("Hyundai", "HHY-7000FE").pk,
+        ats_kind="modular",
+        ats_poles=2,
+        ats_rated_a=40,
+    )
+    body = sim(auth, home, grid="false", generator="true")
+    by = {g["name"]: g for g in body["groups"]}
+    assert by["Свет"]["powered"] and by["Свет"]["source"] == "generator"
+    assert not by["Бойлер"]["powered"] and by["Бойлер"]["reason"] == "not_backed_up"
+    assert body["backup_source"] == "generator"
+
+
+def test_simulate_validates_switches_and_ownership(auth, home):
+    r = auth.get(f"{B}/projects/{home.pk}/power/simulate/", {"position": "x"})
+    assert r.status_code == 400
+    assert auth.get(f"{B}/projects/999999/power/simulate/").status_code == 404
