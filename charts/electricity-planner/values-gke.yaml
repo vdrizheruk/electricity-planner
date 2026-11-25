@@ -1,0 +1,38 @@
+# Example for GKE (container-native load balancing, Google-managed certificate, Cloud SQL or any
+# external PostgreSQL). Adjust the host, the secret names and the reserved static IP.
+#
+#   kubectl create secret generic planner-secrets \
+#     --from-literal=DJANGO_SECRET_KEY="$(python3 -c 'import secrets;print(secrets.token_urlsafe(50))')" \
+#     --from-literal=DATABASE_URL='postgres://planner:PASSWORD@10.0.0.5:5432/planner'
+#   helm upgrade --install planner charts/electricity-planner -f charts/electricity-planner/values-gke.yaml
+
+secret:
+  existingSecret: planner-secrets # keys DJANGO_SECRET_KEY and DATABASE_URL
+
+config:
+  cookieSecure: true # TLS terminates at the Google load balancer
+
+service:
+  annotations:
+    # Container-native load balancing: the LB health checks go to the pod IP (allowed by the chart).
+    cloud.google.com/neg: '{"ingress": true}'
+
+ingress:
+  enabled: true
+  className: gce
+  hosts: [planner.example.com]
+  pathType: Prefix
+  annotations:
+    kubernetes.io/ingress.global-static-ip-name: planner-ip
+    networking.gke.io/managed-certificates: planner-cert
+    kubernetes.io/ingress.allow-http: "false"
+
+backend:
+  replicas: 2
+  autoscaling:
+    enabled: true
+  podDisruptionBudget:
+    enabled: true
+frontend:
+  podDisruptionBudget:
+    enabled: true

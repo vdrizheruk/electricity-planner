@@ -1,0 +1,44 @@
+{{- if .Values.ingress.enabled }}
+{{- $fullname := include "ep.fullname" . }}
+{{- $pathType := .Values.ingress.pathType }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullname }}
+  labels:
+    {{- include "ep.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- with .Values.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- range (.Values.ingress.hosts | default (list "")) }}
+    - {{- if . }}
+      host: {{ . | quote }}
+      {{- end }}
+      http:
+        paths:
+          {{- range (list "/api" "/admin" "/static" "/healthz" "/readyz") }}
+          - path: {{ . }}
+            pathType: {{ $pathType }}
+            backend:
+              service:
+                name: {{ $fullname }}-backend
+                port: {name: http}
+          {{- end }}
+          - path: /
+            pathType: {{ $pathType }}
+            backend:
+              service:
+                name: {{ $fullname }}-frontend
+                port: {name: http}
+    {{- end }}
+{{- end }}

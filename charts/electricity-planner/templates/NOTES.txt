@@ -1,0 +1,15 @@
+electricity-planner {{ .Chart.AppVersion }} is installed as "{{ .Release.Name }}".
+{{- if .Values.ingress.enabled }}
+{{- range .Values.ingress.hosts }}
+URL: {{ if $.Values.ingress.tls }}https{{ else }}http{{ end }}://{{ . }}/
+{{- end }}
+{{- else }}
+No ingress: kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "ep.fullname" . }}-frontend 8080:80
+(the API is served by svc/{{ include "ep.fullname" . }}-backend; enable `ingress` to route both under one host)
+{{- end }}
+{{- if include "ep.managesSecret" . }}
+
+The chart created the Secret "{{ include "ep.secretName" . }}". Create your own and set `secret.existingSecret` to manage it yourself.
+{{- end }}
+Create the first catalog administrator:
+  kubectl -n {{ .Release.Namespace }} exec -it deploy/{{ include "ep.fullname" . }}-backend -- python manage.py createsuperuser

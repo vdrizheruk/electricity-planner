@@ -1,0 +1,118 @@
+# Default values of the electricity-planner chart. See also values-gke.yaml.
+
+nameOverride: ""
+fullnameOverride: ""
+
+imagePullSecrets: []
+
+backend:
+  image:
+    repository: ghcr.io/vdrizheruk/electricity-planner-backend
+    tag: "" # defaults to the chart appVersion
+    pullPolicy: IfNotPresent
+  replicas: 2
+  resources:
+    requests: {cpu: 100m, memory: 384Mi}
+    limits: {memory: 768Mi}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  podAnnotations: {}
+  # The root filesystem is read-only; /tmp is an emptyDir.
+  readOnlyRootFilesystem: true
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1
+
+frontend:
+  image:
+    repository: ghcr.io/vdrizheruk/electricity-planner-frontend
+    tag: ""
+    pullPolicy: IfNotPresent
+  replicas: 2
+  resources:
+    requests: {cpu: 20m, memory: 32Mi}
+    limits: {memory: 128Mi}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  podAnnotations: {}
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1
+
+# Application settings (see README: environment variables).
+config:
+  # Extra values of the Host header Django answers to. Hosts of `ingress.hosts`, `localhost`
+  # and the pod IP (kubelet and load-balancer probes) are added automatically.
+  allowedHosts: []
+  # Public origins with scheme, e.g. https://planner.example.com. Derived from `ingress` when empty.
+  csrfTrustedOrigins: []
+  # true when the site is served over HTTPS (TLS terminates at the ingress / load balancer).
+  cookieSecure: true
+  webConcurrency: 3
+  extraEnv: []
+
+# Secret with DJANGO_SECRET_KEY (key name below). Create it yourself and set `existingSecret`;
+# otherwise the chart creates one (a generated key that is kept across upgrades, or `djangoSecretKey`).
+secret:
+  existingSecret: ""
+  secretKeyKey: DJANGO_SECRET_KEY
+  djangoSecretKey: ""
+
+# External database (default). The URL comes from a Secret: postgres://user:password@host:5432/db
+database:
+  existingSecret: "" # defaults to `secret.existingSecret`, else the chart-managed Secret
+  urlKey: DATABASE_URL
+  url: "" # only for the chart-managed Secret (prefer existingSecret)
+
+# Built-in single-instance PostgreSQL 16 (StatefulSet + PVC). For tests and small installs;
+# use a managed database in production.
+postgresql:
+  enabled: false
+  image:
+    repository: postgres
+    tag: 16-alpine
+    pullPolicy: IfNotPresent
+  auth:
+    database: planner
+    username: planner
+    existingSecret: "" # defaults to the same Secret as `secret`
+    passwordKey: POSTGRES_PASSWORD # letters and digits only: it is embedded into DATABASE_URL
+    password: "" # only for the chart-managed Secret
+  persistence:
+    size: 8Gi
+    storageClass: ""
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {memory: 512Mi}
+
+# Helm hook Job: `manage.py migrate` (+ idempotent `seed_catalog`) before the new pods roll out.
+migrations:
+  enabled: true
+  seedCatalog: true
+  backoffLimit: 10
+  activeDeadlineSeconds: 900
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts: [] # e.g. [planner.example.com]
+  pathType: Prefix
+  tls: [] # [{secretName: planner-tls, hosts: [planner.example.com]}]
+
+service:
+  type: ClusterIP
+  # Annotations for the backend and the frontend Service (e.g. cloud.google.com/neg for GKE).
+  annotations: {}
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""

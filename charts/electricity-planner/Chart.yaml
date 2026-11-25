@@ -1,0 +1,10 @@
+apiVersion: v2
+name: electricity-planner
+description: Electrical panel designer with backup power and PV (Django backend + React SPA)
+type: application
+version: 0.1.0
+appVersion: "latest"
+kubeVersion: ">=1.25.0-0"
+home: https://github.com/vdrizheruk/electricity-planner
+sources:
+  - https://github.com/vdrizheruk/electricity-planner
