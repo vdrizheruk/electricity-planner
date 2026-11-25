@@ -6,7 +6,7 @@
 
 - Требования: [PROMPT.md](PROMPT.md)
 - План, ER-модель, API, формулы и допущения по этапам: [docs/PLAN.md](docs/PLAN.md)
-- Стек: Django 5.2 + DRF + PostgreSQL 16 · React 18 + TypeScript + Vite · dnd-kit, Zustand, React Flow, Tailwind · WeasyPrint, openpyxl · Docker, GitHub Actions.
+- Стек: Django 5.2 + DRF + PostgreSQL 16 · React 18 + TypeScript + Vite · dnd-kit, Zustand, React Flow, Tailwind · WeasyPrint, openpyxl · Docker, Helm, GitHub Actions.
 
 ## Быстрый старт (Docker)
 
@@ -42,9 +42,29 @@ deploy/smoke.sh http://localhost:8080                          # проверк�
 
 Без Docker настройки читаются из `backend/.env` (см. `backend/.env.example`).
 
-### Kubernetes
+### Kubernetes (Helm)
 
-Образы stateless и следуют 12-factor: вся конфигурация из окружения, логи в stdout, пользователь `10001` (`runAsNonRoot`). Пробы: liveness `GET /healthz`, readiness `GET /readyz` (проверяет БД); задайте заголовок `Host` из `DJANGO_ALLOWED_HOSTS` в `httpHeaders` пробы. Миграции запускайте отдельным Job (`python manage.py migrate --noinput`) и ставьте `RUN_MIGRATIONS=0` в Deployment, чтобы реплики не конкурировали. Каталог загружается командой `python manage.py seed_catalog` (идемпотентно). TLS терминируется на ingress: передавайте `X-Forwarded-Proto: https` и включите `DJANGO_COOKIE_SECURE`. Готовых манифестов/helm-чарта в репозитории нет.
+Chart: [`charts/electricity-planner`](charts/electricity-planner). Образы stateless (12-factor, пользователь `10001`, `runAsNonRoot`, `readOnlyRootFilesystem` у backend). Образы публикуются в GHCR (`ghcr.io/vdrizheruk/electricity-planner-{backend,frontend}`) workflow `release.yml` при пуше тега `v*`; свой реестр — `backend.image.repository` / `frontend.image.repository`.
+
+```bash
+kubectl create secret generic planner-secrets \
+  --from-literal=DJANGO_SECRET_KEY="$(python3 -c 'import secrets;print(secrets.token_urlsafe(50))')" \
+  --from-literal=DATABASE_URL='postgres://planner:PASSWORD@db-host:5432/planner'
+helm upgrade --install planner charts/electricity-planner \
+  --set secret.existingSecret=planner-secrets \
+  --set ingress.enabled=true --set ingress.className=nginx --set 'ingress.hosts={planner.example.com}' \
+  --set 'ingress.tls[0].secretName=planner-tls' --set 'ingress.tls[0].hosts={planner.example.com}'
+```
+
+- **База данных**: по умолчанию внешняя, `DATABASE_URL` берётся из Secret (`database.existingSecret`, ключ `database.urlKey`). `--set postgresql.enabled=true` поднимает встроенную одиночную PostgreSQL 16 (StatefulSet + PVC): для тестов и небольших установок, в продакшене лучше управляемая БД (Cloud SQL и т. п.).
+- **Секреты**: `secret.existingSecret` (ключ `DJANGO_SECRET_KEY`). Если не задан, chart создаёт Secret сам (генерирует ключ и сохраняет его между обновлениями).
+- **Миграции**: Helm-hook Job (`manage.py migrate` + идемпотентный `seed_catalog`) выполняется до выкатки новой версии (`pre-upgrade`; при установке со встроенной БД или созданным chart-ом Secret — `post-install`). В Deployment `RUN_MIGRATIONS=0`, реплики не конкурируют. Отключить: `migrations.enabled=false`.
+- **Ingress** опционален: `/api`, `/admin`, `/static`, `/healthz`, `/readyz` → backend, остальное → frontend. TLS терминируется на ingress; `config.cookieSecure=true` по умолчанию. Без ingress: `kubectl port-forward svc/<release>-electricity-planner-frontend 8080:80`.
+- **Пробы**: liveness `/healthz`, readiness `/readyz` (проверяет БД), startupProbe. Host-заголовок проб — IP пода; он автоматически добавляется в `DJANGO_ALLOWED_HOSTS` вместе с `localhost` и хостами ingress, поэтому проверки kubelet и GCE-балансировщика (NEG) проходят.
+- **GKE**: пример [`values-gke.yaml`](charts/electricity-planner/values-gke.yaml): класс `gce`, container-native LB (NEG), Google-managed certificate, статический IP, Secret с внешней БД, HPA и PDB.
+- Дополнительно: `backend.autoscaling`, `*.podDisruptionBudget`, `config.extraEnv`, `imagePullSecrets`, resources, nodeSelector/tolerations/affinity.
+
+Проверка chart локально: `deploy/helm-check.sh` (helm lint, `helm template` для внешней/встроенной БД, существующего Secret и GKE, схема манифестов через kubeconform). Та же проверка запускается в CI.
 
 ## Локальная разработка
 
@@ -77,7 +97,7 @@ npm test && npm run lint && npm run typecheck && npm run format:check
 npm run test:e2e       # Playwright; поднимает Django и Vite сам
 ```
 
-**Контроль качества.** `pre-commit install` включает ruff, mypy, eslint, prettier и tsc. CI (GitHub Actions, `.github/workflows/ci.yml`): ruff, mypy (strict для сервисного слоя), проверка миграций и актуальности `openapi.yaml`, pytest на PostgreSQL; eslint, prettier, tsc, vitest, сборка и совпадение типов API; Playwright; сборка Docker-образов (без публикации) и smoke-тест всего compose-стека.
+**Контроль качества.** `pre-commit install` включает ruff, mypy, eslint, prettier и tsc. CI (GitHub Actions, `.github/workflows/ci.yml`): ruff, mypy (strict для сервисного слоя), проверка миграций и актуальности `openapi.yaml`, pytest на PostgreSQL; eslint, prettier, tsc, vitest, сборка и совпадение типов API; Playwright; helm lint/template/kubeconform, сборка Docker-образов (без публикации) и smoke-тест всего compose-стека.
 
 ## Возможности
 
